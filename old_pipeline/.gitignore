@@ -1,0 +1,13 @@
+# Diretórios padrão do python
+/__pycache__
+/.venv
+
+# Ignora os relatórios
+/Relatorios_Feira
+
+#Ignora os bancos de dados e arquivos estáticos
+*.db
+*.pdf
+*.csv
+*.xls
+*.xlsx
