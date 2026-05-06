@@ -1,6 +1,6 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage } from "@inertiajs/react";
 
-type SidebarKey = 'dashboard' | 'feiras' | 'catalogo' | 'relatorios' | 'perfil';
+type SidebarKey = "dashboard" | "feiras" | "catalogo" | "auditoria" | "relatorios" | "perfil";
 
 type AuthUser = {
     name: string;
@@ -9,65 +9,53 @@ type AuthUser = {
 
 type AppSidebarProps = {
     activeItem?: SidebarKey;
-    brandTitle?: string;
-    brandSubtitle?: string;
 };
 
-export default function AppSidebar({
-    activeItem = 'dashboard',
-    brandTitle = 'ABDL',
-    brandSubtitle = 'Auditoria e Gerenciamento',
-}: AppSidebarProps) {
+export default function AppSidebar({ activeItem = "dashboard" }: AppSidebarProps) {
     const user = usePage().props.auth.user as AuthUser;
 
     const itemClass = (key: SidebarKey) =>
         key === activeItem
-            ? 'group flex items-center rounded-r-lg border-l-4 border-secondary bg-white/15 px-4 py-3 font-bold text-white'
-            : 'group flex items-center rounded-lg px-4 py-3 text-white/70 transition hover:bg-white/10 hover:text-white';
+            ? "flex items-center px-6 py-3 text-white bg-white/10 font-bold border-l-4 border-blue-400 scale-95 active:opacity-80 transition-transform"
+            : "flex items-center px-6 py-3 text-slate-400 hover:text-white transition-colors hover:bg-white/5 transition-all duration-200";
 
     return (
-        <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col bg-primary text-white shadow-[20px_0_40px_-10px_rgba(31,26,23,0.25)]">
+        <nav className="fixed top-0 left-0 h-screen flex flex-col z-40 bg-[#283044] dark:bg-slate-950 w-64 shadow-[20px_0_40px_-10px_rgba(19,27,46,0.12)] font-manrope tracking-wide">
             <div className="px-6 py-8">
-                <h1 className="font-[Manrope] text-lg font-extrabold uppercase tracking-[0.18em]">
-                    {brandTitle}
-                </h1>
-                <p className="mt-1 text-xs text-white/65">{brandSubtitle}</p>
+                <span className="text-lg font-bold text-white tracking-widest uppercase block">ABDL-SYS</span>
+                <span className="text-slate-400 text-xs font-semibold mt-1 block">Management & Audit</span>
             </div>
 
-            <nav className="flex-1 space-y-1 px-3">
-                <Link href={route('dashboard')} className={itemClass('dashboard')}>
-                    <span className="material-symbols-outlined mr-3 text-[20px]">dashboard</span>
-                    <span className="text-sm font-medium">Dashboard</span>
+            <div className="flex flex-col flex-1 mt-4">
+                <Link className={itemClass("dashboard")} href={route("dashboard")}>
+                    <span className="material-symbols-outlined mr-3">dashboard</span>
+                    <span>Dashboard</span>
                 </Link>
 
-                <a className={itemClass('feiras')} href="#">
-                    <span className="material-symbols-outlined mr-3 text-[20px]">event</span>
-                    <span className="text-sm">Feiras</span>
-                </a>
-
-                <a className={itemClass('catalogo')} href="#">
-                    <span className="material-symbols-outlined mr-3 text-[20px]">menu_book</span>
-                    <span className="text-sm font-medium">Catalogo</span>
-                </a>
-
-                <a className={itemClass('relatorios')} href="#">
-                    <span className="material-symbols-outlined mr-3 text-[20px]">analytics</span>
-                    <span className="text-sm font-medium">Relatorios</span>
-                </a>
-
-                <Link href={route('profile.edit')} className={itemClass('perfil')}>
-                    <span className="material-symbols-outlined mr-3 text-[20px]">person</span>
-                    <span className="text-sm font-medium">Perfil</span>
+                <Link className={itemClass("catalogo")} href={route("catalogo.index")}>
+                    <span className="material-symbols-outlined mr-3">menu_book</span>
+                    <span>Catálogo</span>
                 </Link>
-            </nav>
 
-            <div className="space-y-3 p-6">
-
-                <div className="rounded-xl bg-white/10 p-3">
-                    <p className="truncate text-sm font-bold">{user.name}</p>
-                    <p className="truncate text-xs text-white/65">{user.email}</p>
-                </div>
+                <Link className={itemClass("relatorios")} href={route("relatorios.index")}>
+                    <span className="material-symbols-outlined mr-3">analytics</span>
+                    <span>Relatórios</span>
+                </Link>
             </div>
-        </aside>
+
+            <div className="p-6 mt-auto">
+                <Link href={route("profile.edit")} className="flex items-center gap-3 group">
+                    <img
+                        alt="User"
+                        className="w-10 h-10 rounded-full object-cover border-2 border-white/10 group-hover:border-blue-400 transition-all"
+                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=00246a&color=fff`}
+                    />
+                    <div className="overflow-hidden">
+                        <p className="text-white text-sm font-bold truncate">{user.name}</p>
+                        <p className="text-slate-400 text-xs truncate">Acesso Nível 5</p>
+                    </div>
+                </Link>
+            </div>
+        </nav>
     );
 }

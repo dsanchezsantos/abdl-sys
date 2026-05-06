@@ -3,84 +3,26 @@
 @tailwind utilities;
 
 @layer base {
-	:root {
-		/* Cor base levemente suavizada para reduzir brilho excessivo */
-		--color-base: #f7f7f5;
-		--color-primary: #1f1a17;
-		--color-secondary: #087ab2;
+    :root {
+        --color-primary: #00246a;
+        --color-surface: #faf8ff;
+        --color-on-surface: #131b2e;
+    }
 
-		--color-text: var(--color-primary);
-		--color-text-muted: #4b433e;
-		--color-border: #dcd8d3;
-		--color-surface: #ffffff;
-	}
+    body {
+        @apply antialiased bg-surface text-on-surface font-body;
+    }
 
-	html,
-	body {
-		background-color: var(--color-base);
-		color: var(--color-text);
-	}
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
 
-	body {
-		@apply antialiased;
-	}
-
-	a {
-		color: var(--color-secondary);
-	}
-
-	a:hover {
-		color: #066796;
-	}
-
-	::selection {
-		background-color: rgba(8, 122, 178, 0.2);
-		color: var(--color-primary);
-	}
-
-	hr,
-	input,
-	textarea,
-	select {
-		border-color: var(--color-border);
-	}
-
-	input:focus,
-	textarea:focus,
-	select:focus {
-		border-color: var(--color-secondary);
-		box-shadow: 0 0 0 3px rgba(8, 122, 178, 0.2);
-		outline: none;
-	}
+    h1, h2, h3, .font-headline {
+        font-family: 'Manrope', sans-serif;
+    }
 }
 
-@layer components {
-	.app-surface {
-		background-color: var(--color-surface);
-		color: var(--color-text);
-	}
-
-	.app-card {
-		background-color: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: 0.75rem;
-	}
-
-	.btn-primary {
-		background-color: var(--color-primary);
-		color: #ffffff;
-	}
-
-	.btn-primary:hover {
-		background-color: #171311;
-	}
-
-	.btn-secondary {
-		background-color: var(--color-secondary);
-		color: #ffffff;
-	}
-
-	.btn-secondary:hover {
-		background-color: #066796;
-	}
+.glass-panel {
+    background: rgba(234, 237, 255, 0.7);
+    backdrop-filter: blur(12px);
 }

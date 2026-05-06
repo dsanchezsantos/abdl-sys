@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Sistema de Prestação de Contas - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed": "#0d1c2f",
+                        "surface": "#faf8ff",
+                        "on-surface-variant": "#444651",
+                        "background": "#faf8ff",
+                        "on-secondary-fixed-variant": "#3a485c",
+                        "inverse-on-surface": "#eef0ff",
+                        "surface-bright": "#faf8ff",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "tertiary": "#00311f",
+                        "surface-container-high": "#e2e7ff",
+                        "secondary-fixed-dim": "#b9c7e0",
+                        "on-background": "#131b2e",
+                        "secondary-container": "#d5e3fd",
+                        "primary-container": "#00389a",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "primary-fixed": "#dbe1ff",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "on-surface": "#131b2e",
+                        "secondary-fixed": "#d5e3fd",
+                        "on-tertiary-fixed": "#002113",
+                        "on-error": "#ffffff",
+                        "outline": "#757682",
+                        "tertiary-fixed": "#6ffbbe",
+                        "surface-dim": "#d2d9f4",
+                        "primary": "#00246a",
+                        "inverse-surface": "#283044",
+                        "outline-variant": "#c5c5d3",
+                        "inverse-primary": "#b4c5ff",
+                        "on-primary-fixed": "#00174b",
+                        "surface-tint": "#0053db",
+                        "on-tertiary-container": "#27c38a",
+                        "surface-container-low": "#f2f3ff",
+                        "error": "#ba1a1a",
+                        "on-error-container": "#93000a",
+                        "tertiary-container": "#004a31",
+                        "on-primary-container": "#8da9ff",
+                        "error-container": "#ffdad6",
+                        "on-secondary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "secondary": "#515f74",
+                        "on-secondary-container": "#57657b",
+                        "surface-variant": "#dae2fd",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#dae2fd",
+                        "surface-container": "#eaedff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "display": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #faf8ff;
+            color: #131b2e;
+        }
+
+        h1,
+        h2,
+        h3,
+        .font-display {
+            font-family: 'Manrope', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-surface text-on-surface">
+    <!-- SideNavBar Shell -->
+    <nav
+        class="fixed top-0 left-0 h-screen flex flex-col z-40 bg-[#283044] dark:bg-slate-950 docked left-0 h-full w-64 shadow-[20px_0_40px_-10px_rgba(19,27,46,0.12)] font-manrope tracking-wide">
+        <div class="px-6 py-8">
+            <span class="text-lg font-bold text-white tracking-widest uppercase block">The Archival Authority</span>
+            <span class="text-slate-400 text-xs font-semibold mt-1 block">Management &amp; Audit</span>
+        </div>
+        <div class="flex flex-col flex-1 mt-4">
+            <!-- Dashboard (Active) -->
+            <a class="flex items-center px-6 py-3 text-white bg-white/10 font-bold border-l-4 border-blue-400 scale-95 active:opacity-80 transition-transform"
+                href="#">
+                <span class="material-symbols-outlined mr-3" data-icon="dashboard">dashboard</span>
+                <span>Dashboard</span>
+            </a>
+            <!-- Feiras -->
+            <a class="flex items-center px-6 py-3 text-slate-400 hover:text-white transition-colors hover:bg-white/5 transition-all duration-200"
+                href="#">
+                <span class="material-symbols-outlined mr-3" data-icon="event">event</span>
+                <span>Feiras</span>
+            </a>
+            <!-- Catálogo -->
+            <a class="flex items-center px-6 py-3 text-slate-400 hover:text-white transition-colors hover:bg-white/5 transition-all duration-200"
+                href="#">
+                <span class="material-symbols-outlined mr-3" data-icon="menu_book">menu_book</span>
+                <span>Catálogo</span>
+            </a>
+            <!-- Auditoria -->
+            <a class="flex items-center px-6 py-3 text-slate-400 hover:text-white transition-colors hover:bg-white/5 transition-all duration-200"
+                href="#">
+                <span class="material-symbols-outlined mr-3" data-icon="fact_check">fact_check</span>
+                <span>Auditoria</span>
+            </a>
+            <!-- Relatórios -->
+            <a class="flex items-center px-6 py-3 text-slate-400 hover:text-white transition-colors hover:bg-white/5 transition-all duration-200"
+                href="#">
+                <span class="material-symbols-outlined mr-3" data-icon="analytics">analytics</span>
+                <span>Relatórios</span>
+            </a>
+        </div>
+        <div class="p-6 mt-auto">
+            <div class="flex items-center gap-3">
+                <img alt="User profile photo" class="w-10 h-10 rounded-full object-cover"
+                    data-alt="A professional headshot of a corporate administrator in a modern office setting. The lighting is crisp and cool, reflecting a professional high-key aesthetic with a palette of deep navy and bright white tones. The mood is authoritative yet accessible, suitable for an institutional management and audit platform."
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuBikFS9xt1WHQyffGqMisQBwVDEUQQomOCIDv6_PrjOxMsnbuS_imWT7zK6ynt2W3mV8N0GmmdqGmScsSz885PRUYfyI9VkieY3y9m-aU_-KJHR-U7EVYbl0Le3rIi7z7J7vU6TqP4qDJZWKro3qT0JPDcwFm8jaUKdRW2rTQILKX2j5a_dvL1yf3uHccniNdiaOWeEZyX4MTQODUbUQ0ALB0EIP5fh-XB5FsiE-udlfWf0fy3Rj-YpZXHmDfY1U6d4WO7xTy2vWHnr" />
+                <div>
+                    <p class="text-white text-sm font-bold leading-none">Admin Sistema</p>
+                    <p class="text-slate-400 text-xs mt-1">Nível de Acesso 5</p>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <!-- TopNavBar Shell -->
+    <header
+        class="flex justify-between items-center w-full px-8 py-4 sticky top-0 z-30 ml-64 w-[calc(100%-16rem)] bg-[#faf8ff]/80 dark:bg-slate-900/80 backdrop-blur-xl font-manrope font-semibold text-[#00246a] dark:text-blue-400 no-line-rule tonal-shifts">
+        <div class="flex items-center gap-6">
+            <h1 class="text-on-surface font-extrabold text-xl tracking-tight">Feira Selecionada: Saquarema 2025</h1>
+            <div class="relative hidden lg:block">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline"
+                    data-icon="search">search</span>
+                <input
+                    class="pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-lg focus:ring-2 focus:ring-primary/20 text-sm w-64 transition-all"
+                    placeholder="Pesquisar registros..." type="text" />
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all active:scale-95">
+                <span class="material-symbols-outlined text-outline" data-icon="notifications">notifications</span>
+            </button>
+            <button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all active:scale-95">
+                <span class="material-symbols-outlined text-outline" data-icon="settings">settings</span>
+            </button>
+            <button
+                class="flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary rounded-lg font-bold text-sm hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-primary/20">
+                <span class="material-symbols-outlined text-sm" data-icon="sync">sync</span>
+                Sync Data
+            </button>
+        </div>
+    </header>
+    <!-- Main Content Canvas -->
+    <main class="ml-64 p-8 min-h-screen">
+        <!-- KPI Row: Bento Grid Style -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Faturamento Card -->
+            <div
+                class="col-span-1 lg:col-span-2 bg-surface-container-lowest p-6 rounded-xl shadow-sm border-none relative overflow-hidden group">
+                <div class="flex justify-between items-start mb-4 relative z-10">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-widest text-outline mb-1">Faturamento Bruto vs.
+                            Líquido</p>
+                        <h3 class="text-display-md text-3xl font-extrabold text-on-surface">R$ 142.850,00</h3>
+                    </div>
+                    <span class="material-symbols-outlined text-primary-container bg-primary-fixed p-2 rounded-lg"
+                        data-icon="payments">payments</span>
+                </div>
+                <div class="flex items-center gap-4 relative z-10">
+                    <div class="flex-1">
+                        <p class="text-[10px] font-bold text-outline-variant uppercase">Margem Líquida (Filtro de Ouro)
+                        </p>
+                        <div class="flex items-baseline gap-2 mt-1">
+                            <span class="text-xl font-bold text-on-tertiary-container">R$ 118.420,50</span>
+                            <span class="text-xs font-bold text-on-tertiary-fixed-variant">+82%</span>
+                        </div>
+                    </div>
+                    <div class="w-24 h-12 flex items-end gap-1">
+                        <!-- Tiny Chart Logic Visual -->
+                        <div class="w-2 h-4 bg-primary-fixed rounded-t-sm"></div>
+                        <div class="w-2 h-6 bg-primary-fixed rounded-t-sm"></div>
+                        <div class="w-2 h-8 bg-primary-fixed rounded-t-sm"></div>
+                        <div class="w-2 h-10 bg-primary-container rounded-t-sm"></div>
+                    </div>
+                </div>
+                <!-- Gradient Accent -->
+                <div
+                    class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-700">
+                </div>
+            </div>
+            <!-- Ticket Médio -->
+            <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex flex-col justify-between">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-widest text-outline mb-2">Ticket Médio Líquido</p>
+                    <h3 class="text-3xl font-extrabold text-on-surface">R$ 85,30</h3>
+                </div>
+                <div
+                    class="mt-4 flex items-center text-xs text-on-secondary-container bg-secondary-container/30 px-2 py-1 rounded-full self-start">
+                    <span class="material-symbols-outlined text-sm mr-1" data-icon="trending_up">trending_up</span>
+                    Acima da meta (R$ 75)
+                </div>
+            </div>
+            <!-- Volume de Produtos -->
+            <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex flex-col justify-between">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-widest text-outline mb-2">Volume de Produtos</p>
+                    <h3 class="text-3xl font-extrabold text-on-surface">4.891 <span
+                            class="text-sm font-medium text-outline">livros</span></h3>
+                </div>
+                <div class="mt-4 w-full bg-surface-container-low h-1.5 rounded-full overflow-hidden">
+                    <div class="bg-primary h-full w-[65%] rounded-full"></div>
+                </div>
+            </div>
+            <!-- Alert Card: Termômetro de Inconsistências -->
+            <div
+                class="col-span-1 lg:col-span-4 bg-[#fff8e1] border-l-4 border-amber-500 p-6 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="bg-amber-100 p-3 rounded-full">
+                        <span class="material-symbols-outlined text-amber-700 font-bold"
+                            data-icon="warning">warning</span>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-amber-900">Termômetro de Inconsistências</h4>
+                        <p class="text-sm text-amber-800">12 livros vendidos sem Representante/Editora detectados.</p>
+                    </div>
+                </div>
+                <a class="flex items-center gap-1 text-sm font-extrabold text-amber-900 border-b-2 border-amber-900 hover:opacity-70 transition-all"
+                    href="#">
+                    Ir para Catálogo
+                    <span class="material-symbols-outlined text-sm" data-icon="chevron_right">chevron_right</span>
+                </a>
+            </div>
+        </div>
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
+            <!-- Donut Chart Area (Formas de Pagamento) -->
+            <div class="lg:col-span-4 bg-surface-container-lowest p-8 rounded-2xl shadow-sm">
+                <h4 class="text-lg font-bold text-on-surface mb-8">Formas de Pagamento</h4>
+                <div class="flex flex-col items-center">
+                    <div class="relative flex justify-center mb-10">
+                        <!-- Modern Circular Donut Chart using Conic Gradient -->
+                        <div class="w-56 h-56 rounded-full relative flex items-center justify-center"
+                            style="background: conic-gradient(#00246a 0% 40%, #00389a 40% 75%, #515f74 75% 90%, #d5e3fd 90% 100%);">
+                            <!-- Inner White Circle for Donut Effect -->
+                            <div
+                                class="w-40 h-40 bg-surface-container-lowest rounded-full flex flex-col items-center justify-center shadow-inner">
+                                <p class="text-[10px] font-bold text-outline uppercase tracking-[0.2em] mb-1">Total</p>
+                                <p class="text-lg font-extrabold text-on-surface leading-none">PIX</p>
+                                <p class="text-sm font-semibold text-primary">Dominante</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="w-full space-y-4 px-2">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-3 h-3 rounded-full bg-primary"></div>
+                                <span class="text-sm font-medium text-on-surface-variant">PIX</span>
+                            </div>
+                            <span class="text-sm font-bold text-on-surface">40%</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-3 h-3 rounded-full bg-primary-container"></div>
+                                <span class="text-sm font-medium text-on-surface-variant">Cartão de Crédito</span>
+                            </div>
+                            <span class="text-sm font-bold text-on-surface">35%</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-3 h-3 rounded-full bg-secondary"></div>
+                                <span class="text-sm font-medium text-on-surface-variant">Dinheiro</span>
+                            </div>
+                            <span class="text-sm font-bold text-on-surface">15%</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-3 h-3 rounded-full bg-secondary-fixed"></div>
+                                <span class="text-sm font-medium text-on-surface-variant">Saldo Pulseira</span>
+                            </div>
+                            <span class="text-sm font-bold text-on-surface">10%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Top Representantes (Bar Chart) -->
+            <div class="lg:col-span-8 bg-surface-container-lowest p-8 rounded-2xl shadow-sm">
+                <div class="flex justify-between items-center mb-8">
+                    <h4 class="text-lg font-bold text-on-surface">Top 5 Representantes</h4>
+                    <span class="text-xs font-bold text-primary px-3 py-1 bg-primary-fixed rounded-full">Por
+                        Faturamento</span>
+                </div>
+                <div class="space-y-6">
+                    <!-- Bar 1 -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm font-semibold">
+                            <span>Editora Globo</span>
+                            <span class="text-on-surface">R$ 42.150,00</span>
+                        </div>
+                        <div class="h-3 w-full bg-surface-container rounded-full overflow-hidden">
+                            <div class="h-full bg-primary rounded-full" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <!-- Bar 2 -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm font-semibold">
+                            <span>Companhia das Letras</span>
+                            <span class="text-on-surface">R$ 38.400,00</span>
+                        </div>
+                        <div class="h-3 w-full bg-surface-container rounded-full overflow-hidden">
+                            <div class="h-full bg-primary-container rounded-full" style="width: 85%"></div>
+                        </div>
+                    </div>
+                    <!-- Bar 3 -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm font-semibold">
+                            <span>Editora Record</span>
+                            <span class="text-on-surface">R$ 29.800,00</span>
+                        </div>
+                        <div class="h-3 w-full bg-surface-container rounded-full overflow-hidden">
+                            <div class="h-full bg-secondary rounded-full" style="width: 65%"></div>
+                        </div>
+                    </div>
+                    <!-- Bar 4 -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm font-semibold">
+                            <span>Sextante</span>
+                            <span class="text-on-surface">R$ 18.250,00</span>
+                        </div>
+                        <div class="h-3 w-full bg-surface-container rounded-full overflow-hidden">
+                            <div class="h-full bg-secondary-fixed-dim rounded-full" style="width: 40%"></div>
+                        </div>
+                    </div>
+                    <!-- Bar 5 -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm font-semibold">
+                            <span>Intrínseca</span>
+                            <span class="text-on-surface">R$ 14.250,00</span>
+                        </div>
+                        <div class="h-3 w-full bg-surface-container rounded-full overflow-hidden">
+                            <div class="h-full bg-outline-variant rounded-full" style="width: 32%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Picos de Venda (Line Chart Visual) -->
+            <div class="lg:col-span-12 bg-surface-container-lowest p-8 rounded-2xl shadow-sm">
+                <div class="flex justify-between items-center mb-10">
+                    <div>
+                        <h4 class="text-lg font-bold text-on-surface">Picos de Venda</h4>
+                        <p class="text-sm text-outline">Atividade por hora - Saquarema 2025</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button
+                            class="px-4 py-1.5 rounded-lg bg-primary text-on-primary text-xs font-bold">Hoje</button>
+                        <button
+                            class="px-4 py-1.5 rounded-lg bg-surface-container text-on-surface-variant text-xs font-bold">Ontem</button>
+                    </div>
+                </div>
+                <div class="relative h-48 w-full">
+                    <!-- SVG for Line Chart visualization -->
+                    <svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 1000 100">
+                        <defs>
+                            <lineargradient id="lineGrad" x1="0%" x2="0%" y1="0%" y2="100%">
+                                <stop offset="0%" stop-color="#00246a" stop-opacity="0.2"></stop>
+                                <stop offset="100%" stop-color="#00246a" stop-opacity="0"></stop>
+                            </lineargradient>
+                        </defs>
+                        <path d="M0,80 Q100,75 200,60 T400,30 T600,10 T800,50 T1000,20 L1000,100 L0,100 Z"
+                            fill="url(#lineGrad)"></path>
+                        <path d="M0,80 Q100,75 200,60 T400,30 T600,10 T800,50 T1000,20" fill="none" stroke="#00246a"
+                            stroke-width="3"></path>
+                        <!-- High Activity Node -->
+                        <circle cx="600" cy="10" fill="#00246a" r="5"></circle>
+                    </svg>
+                    <div class="flex justify-between mt-4 text-[10px] font-bold text-outline uppercase">
+                        <span>08:00</span>
+                        <span>10:00</span>
+                        <span>12:00</span>
+                        <span class="text-primary font-extrabold">14:00 (Pico)</span>
+                        <span>16:00</span>
+                        <span>18:00</span>
+                        <span>20:00</span>
+                        <span>22:00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Tables Section: Últimas Transações -->
+        <div class="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden border-none">
+            <div class="p-8 flex justify-between items-center border-b border-surface-container">
+                <h4 class="text-lg font-bold text-on-surface">Últimas Transações</h4>
+                <div class="flex items-center gap-2 text-xs font-bold text-tertiary">
+                    <span class="relative flex h-2 w-2">
+                        <span
+                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary-fixed-dim opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-tertiary"></span>
+                    </span>
+                    Live Feed Ativo
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-surface-container-low">
+                        <tr>
+                            <th class="px-8 py-4 text-[11px] font-bold text-outline uppercase tracking-widest">ID
+                                Transação</th>
+                            <th class="px-8 py-4 text-[11px] font-bold text-outline uppercase tracking-widest">Horário
+                            </th>
+                            <th class="px-8 py-4 text-[11px] font-bold text-outline uppercase tracking-widest">Valor
+                            </th>
+                            <th class="px-8 py-4 text-[11px] font-bold text-outline uppercase tracking-widest">Método
+                            </th>
+                            <th
+                                class="px-8 py-4 text-[11px] font-bold text-outline uppercase tracking-widest text-right">
+                                Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-surface-container/50">
+                        <!-- Row 1 -->
+                        <tr class="hover:bg-surface-container-low transition-colors group">
+                            <td class="px-8 py-5 font-mono text-sm text-on-surface font-bold">#SQ-2025-48902</td>
+                            <td class="px-8 py-5 text-sm text-on-surface-variant">14:42:15</td>
+                            <td class="px-8 py-5 text-sm font-bold text-on-surface">R$ 142,90</td>
+                            <td class="px-8 py-5">
+                                <span
+                                    class="px-3 py-1 rounded-full text-[10px] font-extrabold bg-primary-fixed text-primary">PIX</span>
+                            </td>
+                            <td class="px-8 py-5 text-right">
+                                <span
+                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold bg-tertiary-container text-on-tertiary-container">
+                                    <span class="material-symbols-outlined text-[12px]" data-icon="check_circle"
+                                        style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                    Sincronizado
+                                </span>
+                            </td>
+                        </tr>
+                        <!-- Row 2 -->
+                        <tr class="hover:bg-surface-container-low transition-colors group">
+                            <td class="px-8 py-5 font-mono text-sm text-on-surface font-bold">#SQ-2025-48901</td>
+                            <td class="px-8 py-5 text-sm text-on-surface-variant">14:41:58</td>
+                            <td class="px-8 py-5 text-sm font-bold text-on-surface">R$ 54,00</td>
+                            <td class="px-8 py-5">
+                                <span
+                                    class="px-3 py-1 rounded-full text-[10px] font-extrabold bg-secondary-container text-secondary">Dinheiro</span>
+                            </td>
+                            <td class="px-8 py-5 text-right">
+                                <span
+                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold bg-tertiary-container text-on-tertiary-container">
+                                    <span class="material-symbols-outlined text-[12px]" data-icon="check_circle"
+                                        style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                    Sincronizado
+                                </span>
+                            </td>
+                        </tr>
+                        <!-- Row 3 -->
+                        <tr class="hover:bg-surface-container-low transition-colors group">
+                            <td class="px-8 py-5 font-mono text-sm text-on-surface font-bold">#SQ-2025-48900</td>
+                            <td class="px-8 py-5 text-sm text-on-surface-variant">14:40:22</td>
+                            <td class="px-8 py-5 text-sm font-bold text-on-surface">R$ 289,50</td>
+                            <td class="px-8 py-5">
+                                <span
+                                    class="px-3 py-1 rounded-full text-[10px] font-extrabold bg-primary-fixed text-primary">Crédito</span>
+                            </td>
+                            <td class="px-8 py-5 text-right">
+                                <span
+                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold bg-primary-fixed-dim text-on-primary-fixed-variant">
+                                    <span class="material-symbols-outlined text-[12px]" data-icon="sync">sync</span>
+                                    Processado
+                                </span>
+                            </td>
+                        </tr>
+                        <!-- Row 4 -->
+                        <tr class="hover:bg-surface-container-low transition-colors group">
+                            <td class="px-8 py-5 font-mono text-sm text-on-surface font-bold">#SQ-2025-48899</td>
+                            <td class="px-8 py-5 text-sm text-on-surface-variant">14:38:10</td>
+                            <td class="px-8 py-5 text-sm font-bold text-on-surface">R$ 15,00</td>
+                            <td class="px-8 py-5">
+                                <span
+                                    class="px-3 py-1 rounded-full text-[10px] font-extrabold bg-secondary-fixed text-on-secondary-fixed-variant">Pulseira</span>
+                            </td>
+                            <td class="px-8 py-5 text-right">
+                                <span
+                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold bg-tertiary-container text-on-tertiary-container">
+                                    <span class="material-symbols-outlined text-[12px]" data-icon="check_circle"
+                                        style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                    Sincronizado
+                                </span>
+                            </td>
+                        </tr>
+                        <!-- Row 5 -->
+                        <tr class="hover:bg-surface-container-low transition-colors group">
+                            <td class="px-8 py-5 font-mono text-sm text-on-surface font-bold">#SQ-2025-48898</td>
+                            <td class="px-8 py-5 text-sm text-on-surface-variant">14:35:44</td>
+                            <td class="px-8 py-5 text-sm font-bold text-on-surface">R$ 98,20</td>
+                            <td class="px-8 py-5">
+                                <span
+                                    class="px-3 py-1 rounded-full text-[10px] font-extrabold bg-primary-fixed text-primary">PIX</span>
+                            </td>
+                            <td class="px-8 py-5 text-right">
+                                <span
+                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold bg-tertiary-container text-on-tertiary-container">
+                                    <span class="material-symbols-outlined text-[12px]" data-icon="check_circle"
+                                        style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                    Sincronizado
+                                </span>
+                            </td>
+                        </tr>
+                        <!-- Row 6 -->
+                        <tr class="hover:bg-surface-container-low transition-colors group">
+                            <td class="px-8 py-5 font-mono text-sm text-on-surface font-bold">#SQ-2025-48897</td>
+                            <td class="px-8 py-5 text-sm text-on-surface-variant">14:32:01</td>
+                            <td class="px-8 py-5 text-sm font-bold text-on-surface">R$ 210,00</td>
+                            <td class="px-8 py-5">
+                                <span
+                                    class="px-3 py-1 rounded-full text-[10px] font-extrabold bg-primary-fixed text-primary">Crédito</span>
+                            </td>
+                            <td class="px-8 py-5 text-right">
+                                <span
+                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold bg-primary-fixed-dim text-on-primary-fixed-variant">
+                                    <span class="material-symbols-outlined text-[12px]" data-icon="sync">sync</span>
+                                    Processado
+                                </span>
+                            </td>
+                        </tr>
+                        <!-- Row 7 -->
+                        <tr class="hover:bg-surface-container-low transition-colors group">
+                            <td class="px-8 py-5 font-mono text-sm text-on-surface font-bold">#SQ-2025-48896</td>
+                            <td class="px-8 py-5 text-sm text-on-surface-variant">14:30:15</td>
+                            <td class="px-8 py-5 text-sm font-bold text-on-surface">R$ 45,00</td>
+                            <td class="px-8 py-5">
+                                <span
+                                    class="px-3 py-1 rounded-full text-[10px] font-extrabold bg-secondary-container text-secondary">Dinheiro</span>
+                            </td>
+                            <td class="px-8 py-5 text-right">
+                                <span
+                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold bg-tertiary-container text-on-tertiary-container">
+                                    <span class="material-symbols-outlined text-[12px]" data-icon="check_circle"
+                                        style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                    Sincronizado
+                                </span>
+                            </td>
+                        </tr>
+                        <!-- Row 8 -->
+                        <tr class="hover:bg-surface-container-low transition-colors group">
+                            <td class="px-8 py-5 font-mono text-sm text-on-surface font-bold">#SQ-2025-48895</td>
+                            <td class="px-8 py-5 text-sm text-on-surface-variant">14:28:59</td>
+                            <td class="px-8 py-5 text-sm font-bold text-on-surface">R$ 12,50</td>
+                            <td class="px-8 py-5">
+                                <span
+                                    class="px-3 py-1 rounded-full text-[10px] font-extrabold bg-secondary-fixed text-on-secondary-fixed-variant">Pulseira</span>
+                            </td>
+                            <td class="px-8 py-5 text-right">
+                                <span
+                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold bg-tertiary-container text-on-tertiary-container">
+                                    <span class="material-symbols-outlined text-[12px]" data-icon="check_circle"
+                                        style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                    Sincronizado
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-4 bg-surface-container-low text-center">
+                <button class="text-xs font-extrabold text-primary hover:underline transition-all">Ver todas as
+                    transações (8.412)</button>
+            </div>
+        </div>
+    </main>
+    <!-- FAB Suppression: Not rendered on dashboard as per mandate -->
+</body>
+
+</html>
