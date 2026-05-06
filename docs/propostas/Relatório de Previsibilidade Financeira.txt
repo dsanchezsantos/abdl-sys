@@ -1,0 +1,136 @@
+Relatório de Previsibilidade Financeira: Software House de Eventos
+
+1. Premissas de Cálculo (Base Anual)
+
+Para todos os cenários, utilizamos os dados reais da última feira e a estrutura de custos otimizada (Cloud Free Tier e Parceria de Hardware):
+
+Faturamento Fixo Anual: $R\$ 208.000,00$ ($12 \times R\$ 14.000,00$ mensais + $2 \times R\$ 20.000,00$ por feira).
+
+Volume de Vendas Externas (Base): $R\$ 1.110.294,00$ (Estimativa para 2 feiras).
+
+Taxa MDR Estimada (Conservadora): $1,8\%$ sobre as vendas externas.
+
+Impostos e Operacional: $15\%$ sobre a Receita Bruta ($R\$ 31.200,00$).
+
+Reserva Técnica (Cloud/Infra): $R\$ 2.400,00$ por ano.
+
+2. Comparativo de Cenários de Lucratividade
+
+Abaixo, detalhamos como a decisão sobre as taxas externas impacta o lucro final dos sócios.
+
+Cenário A: Empresa Assume 100% das Taxas
+
+Foco em: Agressividade Comercial e Fidelização Extrema.
+Neste modelo, o cliente não tem nenhum custo bancário. É a proposta mais "irresistível" do mercado.
+
+Item
+
+Valor Anual
+
+Receita Bruta
+
+$R\$ 208.000,00$
+
+(-) Custos de Transação (MDR 100%)
+
+($R\$ 19.985,30$)
+
+(-) Impostos e Operacional
+
+($R\$ 31.200,00$)
+
+(-) Reserva Técnica Cloud
+
+($R\$ 2.400,00$)
+
+Lucro Líquido Anual
+
+$R\$ 154.414,70$
+
+Margem de Lucro
+
+$74,2\%$
+
+Cenário B: Modelo Híbrido (Taxas Divididas 50/50)
+
+Foco em: Equilíbrio e Parceria.
+Neste modelo, dividimos o custo bancário com o cliente, diminuindo nosso risco em caso de aumento de vendas externas.
+
+Item
+
+Valor Anual
+
+Receita Bruta
+
+$R\$ 208.000,00$
+
+(-) Custos de Transação (MDR 50%)
+
+($R\$ 9.992,65$)
+
+(-) Impostos e Operacional
+
+($R\$ 31.200,00$)
+
+(-) Reserva Técnica Cloud
+
+($R\$ 2.400,00$)
+
+Lucro Líquido Anual
+
+$R\$ 164.407,35$
+
+Margem de Lucro
+
+$79,0\%$
+
+Cenário C: Cliente Assume 100% das Taxas
+
+Foco em: Máxima Segurança Financeira.
+Modelo padrão de mercado. Nosso lucro é fixo e independente do meio de pagamento usado pelo público.
+
+Item
+
+Valor Anual
+
+Receita Bruta
+
+$R\$ 208.000,00$
+
+(-) Custos de Transação (MDR 0%)
+
+$R\$ 0,00$
+
+(-) Impostos e Operacional
+
+($R\$ 31.200,00$)
+
+(-) Reserva Técnica Cloud
+
+($R\$ 2.400,00$)
+
+Lucro Líquido Anual
+
+$R\$ 174.400,00$
+
+Margem de Lucro
+
+$83,8\%$
+
+3. Análise de Retirada por Sócio (Mensal)
+
+Considerando a divisão equânime entre os 2 sócios, a retirada média mensal seria:
+
+Cenário A: $R\$ 6.433,94$ / sócio
+
+Cenário B: $R\$ 6.850,30$ / sócio
+
+Cenário C: $R\$ 7.266,66$ / sócio
+
+4. Conclusão e Recomendação Estratégica
+
+Mesmo no Cenário A (o mais caro para nós), a margem de lucro de $74\%$ é extraordinária para o setor de tecnologia.
+
+Recomendação: Iniciar a negociação com o Cenário C (Cliente paga) ou Cenário B (Dividido). Caso o cliente apresente resistência por causa do custo do fornecedor atual, temos uma "gordura" de quase $R\$ 20.000,00$ para queimar (Cenário A) e ainda assim manter um negócio altamente lucrativo.
+
+O "pulo do gato" financeiro é que, independente do cenário, a nossa mensalidade de $R\$ 14.000,00$ é o que sustenta a empresa, enquanto o fee da feira absorve os custos operacionais do evento.

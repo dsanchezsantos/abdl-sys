@@ -1,0 +1,81 @@
+Proposta de Negócio: Software House com Absorção de Taxas Bancárias
+
+1. O Cenário Real (Baseado na Última Feira)
+
+Analisamos os dados reais do cliente para validar a viabilidade de assumirmos as taxas das transações externas.
+
+Faturamento Total: R$ 6.282.862,15
+
+Vendas Públicas (NFC Interno): R$ 5.727.715,15 (91,2% do volume)
+
+Vendas Externas (Cartão/PIX): R$ 555.147,00 (8,8% do volume)
+
+2. Estratégia: Por que assumir a taxa é um "bom negócio"?
+
+O cliente atualmente tem o custo e a preocupação de gerir essas taxas. Ao oferecermos um serviço onde nós pagamos as taxas bancárias das vendas externas, criamos uma proposta de valor irrecusável.
+
+Projeção de Custo de Transação (MDR)
+
+Considerando uma taxa média negociada de 1,5% (blended entre Débito, Crédito e PIX) com nosso parceiro adquirente (Stone/PagBank):
+
+Base de Cálculo: R$ 555.147,00
+
+Custo Real de Taxas para nossa empresa: R$ 8.327,20 por feira.
+
+3. Análise de Lucratividade por Feira
+
+Mantendo o modelo de cobrança de R$ 20.000,00 por feira:
+
+Item
+
+Valor
+
+Receita da Feira (Fee Fixo)
+
+R$ 20.000,00
+
+(-) Custo de Taxas Bancárias Assumidas
+
+(R$ 8.327,20)
+
+(-) Custos de Servidor/Infra
+
+(R$ 1.500,00)
+
+Lucro Líquido Operacional (por feira)
+
+R$ 10.172,80
+
+Nota: Além deste lucro na feira, mantemos a mensalidade de R$ 14.000,00, que é 100% lucro (margem limpa para os sócios).
+
+4. O Modelo de Software House Parceira
+
+Em vez de comprar 100 máquinas (Gertec), utilizaremos o hardware da adquirente em regime de parceria.
+
+Nosso ganho: Não temos custo de manutenção nem de troca de máquinas.
+
+Nossa entrega: O software que integra o catálogo de 1000 livros e a leitura do cartão NFC da prefeitura.
+
+5. Argumentação para o Cliente (O Fechamento)
+
+Para o organizador, nossa proposta será apresentada como:
+
+Fim da Incerteza: Ele não precisa mais calcular taxas. O valor que ele vende é o valor que ele recebe (líquido de impostos dele).
+
+Sistema Especializado: Diferente da empresa atual, nosso sistema é focado em feiras de livros, com suporte a múltiplos cartões e catálogo pré-carregado.
+
+Hardware Moderno: Substituição de terminais antigos por SmartPOS Android de última geração.
+
+6. Previsão Financeira Anual (Cenário 2 Feiras/Ano)
+
+Mensalidades (12 x R$ 14k): R$ 168.000,00
+
+Lucro Operacional Feiras (2 x R$ 10.1k): R$ 20.200,00
+
+Resultado Líquido Anual: R$ 188.200,00
+
+Este valor representa o rendimento da empresa para os dois sócios, com um esforço operacional concentrado apenas nos períodos de feira e manutenção mínima de software no restante do ano.
+
+7. Conclusão para o Sócio
+
+Assumir as taxas externas custa apenas R$ 8,3 mil em uma operação que nos rende R$ 208 mil brutos por ano. É um investimento de marketing e fidelização extremamente barato. O risco é baixo, pois mesmo que as vendas externas dobrem de tamanho, o fee da feira (R$ 20k) ainda cobriria as taxas, mantendo nossa mensalidade intacta.

@@ -1,0 +1,89 @@
+Planejamento Estratégico: Modelo de Repasse de Custos Transacionais
+
+1. Premissa do Modelo
+
+Diferente do cenário de absorção, este modelo foca na previsibilidade total do lucro. Mantemos os valores de contrato que o cliente já está habituado, mas tratamos as taxas das adquirentes (Stone/PagBank/etc.) como um custo passante, garantindo que o "Fee da Feira" seja quase integralmente convertido em lucro para os sócios.
+
+2. Análise do Fluxo Financeiro (Base: Última Feira)
+
+Com o faturamento externo sendo de R$ 555.147,00 (8,8% do total), o custo bancário gira em torno de R$ 8.327,00 (considerando MDR de 1,5%).
+
+Comparativo de Receita Líquida (Por Feira):
+
+Item
+
+Com Repasse Total
+
+Com Repasse Parcial (50/50)
+
+Fee Fixo da Feira
+
+R$ 20.000,00
+
+R$ 20.000,00
+
+Custo MDR (Externo)
+
+R$ 0,00 (Pago pelo cliente)
+
+(R$ 4.163,50)
+
+Custos Operacionais
+
+(R$ 1.500,00)
+
+(R$ 1.500,00)
+
+Resultado Líquido
+
+R$ 18.500,00
+
+R$ 14.336,50
+
+3. Estratégias de Implementação do Repasse
+
+Opção A: Repasse Integral (Transparência Total)
+
+O software é configurado para que as taxas da adquirente sejam descontadas diretamente do repasse final para o organizador.
+
+Argumento para o cliente: "Nossa mensalidade cobre a tecnologia e o suporte. As taxas bancárias são negociadas por nós para garantir o menor valor de mercado para você, mas são de responsabilidade da operação de venda."
+
+Vantagem: Risco zero para nossa empresa.
+
+Opção B: Taxa de Serviço Compartilhada (Modelo Híbrido)
+
+Nós assumimos a taxa até um teto (ex: 1% do faturamento total da feira) e o excedente é repassado.
+
+Argumento para o cliente: "Nós subsidiamos o processamento até R$ 60.000,00 em vendas externas como cortesia; acima disso, aplica-se o repasse das taxas bancárias."
+
+Vantagem: Cria um "mimo" comercial, mas nos protege de grandes volumes inesperados.
+
+4. Por que este modelo protege a nossa Software House?
+
+Sendo uma equipe de apenas dois sócios, nossa prioridade é o lucro sobre o tempo investido.
+
+Proteção contra Mudança de Perfil: Se em uma próxima feira o público usar menos o "Cartão Livro" e mais o "Cartão de Crédito Particular", nossa margem não diminui.
+
+Independência da Adquirente: Se a Stone ou o PagBank aumentarem as taxas de mercado, não precisamos renegociar nosso contrato com o cliente, pois o custo é repassado automaticamente.
+
+5. Argumentação de Venda para o Organizador
+
+Para o cliente aceitar o repasse das taxas e ainda assim sentir que está ganhando, focaremos no custo zero sobre os 91,2% do faturamento:
+
+"Diferente de outros sistemas, nós não cobramos NENHUMA taxa sobre os R$ 5,7 milhões da prefeitura. Esse processamento é gratuito no nosso software."
+
+"As taxas incidirão apenas sobre o valor externo (8,8%), e como temos volume, conseguimos taxas menores para você do que ele conseguiria sozinho."
+
+6. Previsão Financeira Anual (Cenário Repasse Total)
+
+Considerando 2 feiras ao ano e a mensalidade de R$ 14k:
+
+Mensalidades (12 meses): R$ 168.000,00
+
+Lucro nas Feiras (2x): R$ 37.000,00 (líquido)
+
+Lucro Real da Empresa: R$ 205.000,00
+
+7. Conclusão para o Sócio
+
+O modelo de repasse é o caminho de menor risco. Enquanto a absorção das taxas (R$ 8k) funciona como um desconto agressivo para ganhar o cliente, o repasse garante que cada real do "Fee de R$ 20k" seja valorizado. Dado que o cliente já quer trocar de fornecedor pela insatisfação com o atual, temos espaço para ser transparentes e mostrar que o valor do nosso serviço está na inteligência do software e não na intermediação financeira.

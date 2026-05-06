@@ -1,0 +1,77 @@
+Plano de Negócios: Software House de Gestão para Feiras de Livros
+
+1. Visão Geral: O que estamos vendendo?
+
+Não vendemos apenas o aluguel de terminais de pagamento. Vendemos uma Solução de Inteligência Financeira e Operacional customizada para feiras de livros.
+
+Nossa proposta resolve o maior problema do organizador: gerir, em um único sistema, a venda por créditos municipais (91% do volume) e a venda por meios externos (cartões e PIX), com relatórios em tempo real e catálogo de produtos integrado.
+
+2. O Modelo de Operação (O "Pulo do Gato")
+
+Para operarmos com apenas dois sócios, eliminaremos o peso do hardware:
+
+Hardware via Parceria: Não compraremos 100 máquinas Gertec. Seremos parceiros de uma adquirente (Stone, PagBank ou Mercado Pago). Eles fornecem as SmartPOS Android em regime de comodato ou aluguel subsidiado pelo faturamento das vendas externas (R$ 555k).
+
+Logística Simplificada: Se uma máquina quebrar, a responsabilidade de troca e manutenção física é da adquirente. Nosso foco é 100% no software e nos dados.
+
+Software Híbrido: Desenvolvemos um aplicativo que roda nessas máquinas.
+
+Módulo Público: Lê o cartão NFC da prefeitura (custo de transação zero para nós).
+
+Módulo Bancário: Aciona o checkout da adquirente para crédito/débito/PIX.
+
+3. Estratégia Comercial (Como vender para o cliente)
+
+O argumento de venda para o organizador é a especialização e a economia:
+
+Troca do Fornecedor Atual: O cliente já paga R$ 14k/mês + R$ 20k/feira. Manteremos esse valor para não haver barreira de preço, mas entregaremos uma tecnologia superior.
+
+Eficiência no Checkout: Nosso app terá o catálogo dos livros pré-carregados. O freelancer só precisa bipar o livro ou selecionar na tela. Isso reduz filas e erros de digitação.
+
+Transparência Total: Ofereceremos um Dashboard Web onde o organizador vê, em tempo real, quanto cada estande vendeu e qual o saldo total de créditos da prefeitura que já foi consumido.
+
+Gestão de Taxas: Apresentaremos a vantagem de não haver taxas bancárias sobre os R$ 5,7 milhões da prefeitura, pois o processamento é interno do nosso software.
+
+4. Como prestaremos o serviço (Execução)
+
+O fluxo de trabalho dos dois sócios será dividido em:
+
+A. Pré-Evento (Desenvolvimento e Setup)
+
+Integração SDK: Uso do SDK da adquirente (ex: PlugPag do PagBank) para controlar a impressora e o leitor NFC.
+
+Carga de Dados: Importação da lista de livros e créditos das prefeituras.
+
+Logística de Hardware: Solicitação das 100 máquinas à adquirente com 15 dias de antecedência.
+
+B. Durante o Evento (Suporte e Gestão)
+
+Suporte Remoto: Monitoramento do servidor e do status das máquinas via dashboard.
+
+Plantão Técnico: Como o sistema é "Offline-First", se a internet cair, as máquinas continuam vendendo. Isso reduz o estresse de suporte crítico.
+
+C. Pós-Evento (Fechamento)
+
+Relatório de Repasse: Geração automática do arquivo para a prefeitura pagar o organizador pelos livros vendidos.
+
+5. Estrutura Financeira e Lucratividade
+
+Nosso lucro é maximizado pela baixa despesa operacional:
+
+Receita Anual Estimada (2 feiras): R$ 208.000,00.
+
+Principais Custos: Servidor (AWS/Google Cloud), licenças de software e impostos.
+
+Custo de Hardware: Zero ou mínimo (diluído na parceria).
+
+Margem de Lucro Bruta: Superior a 85%.
+
+6. Próximos Passos
+
+Escolha do Parceiro de Pagamento: Reunião com gerentes de parcerias da Stone/PagBank para garantir as 100 máquinas.
+
+Desenvolvimento do MVP: Focar na função de leitura do saldo NFC (Cartão da Prefeitura).
+
+Contrato com o Cliente: Formalização da migração do serviço atual para o nosso modelo de Software House.
+
+Conclusão para o Sócio: Este modelo nos dá liberdade. Não somos escravos de logística de hardware, mas donos de uma plataforma de dados essencial para o cliente. O faturamento é previsível e a operação é escalável para outros eventos.

@@ -1,7 +1,4 @@
 import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
 import { Transition } from '@headlessui/react';
 import { useForm } from '@inertiajs/react';
 import { FormEventHandler, useRef } from 'react';
@@ -50,97 +47,108 @@ export default function UpdatePasswordForm({
 
     return (
         <section className={className}>
-            <header>
-                <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                    Update Password
-                </h2>
-
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                    Ensure your account is using a long, random password to stay
-                    secure.
-                </p>
-            </header>
-
-            <form onSubmit={updatePassword} className="mt-6 space-y-6">
-                <div>
-                    <InputLabel
-                        htmlFor="current_password"
-                        value="Current Password"
-                    />
-
-                    <TextInput
-                        id="current_password"
-                        ref={currentPasswordInput}
-                        value={data.current_password}
-                        onChange={(e) =>
-                            setData('current_password', e.target.value)
-                        }
-                        type="password"
-                        className="mt-1 block w-full"
-                        autoComplete="current-password"
-                    />
-
-                    <InputError
-                        message={errors.current_password}
-                        className="mt-2"
-                    />
+            <div className="rounded-xl border border-primary/10 bg-white p-8 shadow-[0_20px_40px_-10px_rgba(19,27,46,0.05)]">
+                <div className="mb-8 flex items-center gap-4">
+                    <span className="material-symbols-outlined rounded-lg bg-red-100 p-2 text-red-700">
+                        lock
+                    </span>
+                    <h3 className="font-[Manrope] text-xl font-bold text-primary">
+                        Seguranca
+                    </h3>
                 </div>
 
-                <div>
-                    <InputLabel htmlFor="password" value="New Password" />
+                <form onSubmit={updatePassword} className="space-y-5">
+                    <div>
+                        <label
+                            htmlFor="current_password"
+                            className="mb-1.5 ml-1 block text-[11px] font-bold uppercase tracking-wider text-primary/60"
+                        >
+                            Senha Atual
+                        </label>
 
-                    <TextInput
-                        id="password"
-                        ref={passwordInput}
-                        value={data.password}
-                        onChange={(e) => setData('password', e.target.value)}
-                        type="password"
-                        className="mt-1 block w-full"
-                        autoComplete="new-password"
-                    />
+                        <input
+                            id="current_password"
+                            ref={currentPasswordInput}
+                            value={data.current_password}
+                            onChange={(e) => setData('current_password', e.target.value)}
+                            type="password"
+                            className="w-full rounded-lg border border-primary/20 bg-white px-4 py-3 text-sm text-primary outline-none transition focus:border-secondary focus:ring-2 focus:ring-secondary/20"
+                            autoComplete="current-password"
+                        />
 
-                    <InputError message={errors.password} className="mt-2" />
-                </div>
+                        <InputError message={errors.current_password} className="mt-2" />
+                    </div>
 
-                <div>
-                    <InputLabel
-                        htmlFor="password_confirmation"
-                        value="Confirm Password"
-                    />
+                    <div className="border-t border-primary/10 pt-4">
+                        <label
+                            htmlFor="password"
+                            className="mb-1.5 ml-1 block text-[11px] font-bold uppercase tracking-wider text-primary/60"
+                        >
+                            Nova Senha
+                        </label>
 
-                    <TextInput
-                        id="password_confirmation"
-                        value={data.password_confirmation}
-                        onChange={(e) =>
-                            setData('password_confirmation', e.target.value)
-                        }
-                        type="password"
-                        className="mt-1 block w-full"
-                        autoComplete="new-password"
-                    />
+                        <input
+                            id="password"
+                            ref={passwordInput}
+                            value={data.password}
+                            onChange={(e) => setData('password', e.target.value)}
+                            type="password"
+                            className="mb-4 w-full rounded-lg border border-primary/20 bg-white px-4 py-3 text-sm text-primary outline-none transition focus:border-secondary focus:ring-2 focus:ring-secondary/20"
+                            autoComplete="new-password"
+                        />
+                        <InputError message={errors.password} className="mt-2" />
 
-                    <InputError
-                        message={errors.password_confirmation}
-                        className="mt-2"
-                    />
-                </div>
+                        <label
+                            htmlFor="password_confirmation"
+                            className="mb-1.5 ml-1 block text-[11px] font-bold uppercase tracking-wider text-primary/60"
+                        >
+                            Confirmar Nova Senha
+                        </label>
 
-                <div className="flex items-center gap-4">
-                    <PrimaryButton disabled={processing}>Save</PrimaryButton>
+                        <input
+                            id="password_confirmation"
+                            value={data.password_confirmation}
+                            onChange={(e) => setData('password_confirmation', e.target.value)}
+                            type="password"
+                            className="w-full rounded-lg border border-primary/20 bg-white px-4 py-3 text-sm text-primary outline-none transition focus:border-secondary focus:ring-2 focus:ring-secondary/20"
+                            autoComplete="new-password"
+                        />
+                        <InputError
+                            message={errors.password_confirmation}
+                            className="mt-2"
+                        />
+                    </div>
 
-                    <Transition
-                        show={recentlySuccessful}
-                        enter="transition ease-in-out"
-                        enterFrom="opacity-0"
-                        leave="transition ease-in-out"
-                        leaveTo="opacity-0"
-                    >
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Saved.
+                    <div className="flex items-start gap-3 rounded-lg border border-primary/10 bg-base p-4">
+                        <span className="material-symbols-outlined mt-0.5 text-lg text-primary/60">
+                            info
+                        </span>
+                        <p className="text-xs leading-relaxed text-primary/65">
+                            A senha deve conter pelo menos 8 caracteres, com letras e numeros.
                         </p>
-                    </Transition>
-                </div>
-            </form>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <button
+                            type="submit"
+                            disabled={processing}
+                            className="w-full rounded-lg bg-primary px-8 py-3 text-sm font-bold text-white shadow-md transition hover:bg-primary/90 disabled:opacity-70"
+                        >
+                            Atualizar Senha
+                        </button>
+
+                        <Transition
+                            show={recentlySuccessful}
+                            enter="transition ease-in-out"
+                            enterFrom="opacity-0"
+                            leave="transition ease-in-out"
+                            leaveTo="opacity-0"
+                        >
+                            <p className="text-sm text-primary/70">Salvo.</p>
+                        </Transition>
+                    </div>
+                </form>
+            </div>
         </section>
     );
 }

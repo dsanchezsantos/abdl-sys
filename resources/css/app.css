@@ -1,3 +1,86 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+	:root {
+		/* Cor base levemente suavizada para reduzir brilho excessivo */
+		--color-base: #f7f7f5;
+		--color-primary: #1f1a17;
+		--color-secondary: #087ab2;
+
+		--color-text: var(--color-primary);
+		--color-text-muted: #4b433e;
+		--color-border: #dcd8d3;
+		--color-surface: #ffffff;
+	}
+
+	html,
+	body {
+		background-color: var(--color-base);
+		color: var(--color-text);
+	}
+
+	body {
+		@apply antialiased;
+	}
+
+	a {
+		color: var(--color-secondary);
+	}
+
+	a:hover {
+		color: #066796;
+	}
+
+	::selection {
+		background-color: rgba(8, 122, 178, 0.2);
+		color: var(--color-primary);
+	}
+
+	hr,
+	input,
+	textarea,
+	select {
+		border-color: var(--color-border);
+	}
+
+	input:focus,
+	textarea:focus,
+	select:focus {
+		border-color: var(--color-secondary);
+		box-shadow: 0 0 0 3px rgba(8, 122, 178, 0.2);
+		outline: none;
+	}
+}
+
+@layer components {
+	.app-surface {
+		background-color: var(--color-surface);
+		color: var(--color-text);
+	}
+
+	.app-card {
+		background-color: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: 0.75rem;
+	}
+
+	.btn-primary {
+		background-color: var(--color-primary);
+		color: #ffffff;
+	}
+
+	.btn-primary:hover {
+		background-color: #171311;
+	}
+
+	.btn-secondary {
+		background-color: var(--color-secondary);
+		color: #ffffff;
+	}
+
+	.btn-secondary:hover {
+		background-color: #066796;
+	}
+}

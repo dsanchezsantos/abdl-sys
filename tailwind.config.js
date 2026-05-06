@@ -12,6 +12,22 @@ export default {
 
     theme: {
         extend: {
+            colors: {
+                base: '#f7f7f5',
+                primary: {
+                    DEFAULT: '#1f1a17',
+                    foreground: '#ffffff',
+                },
+                secondary: {
+                    DEFAULT: '#087ab2',
+                    foreground: '#ffffff',
+                },
+                brand: {
+                    base: '#f7f7f5',
+                    primary: '#1f1a17',
+                    secondary: '#087ab2',
+                },
+            },
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
             },
