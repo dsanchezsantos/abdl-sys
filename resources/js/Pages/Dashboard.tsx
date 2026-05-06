@@ -48,13 +48,14 @@ export default function Dashboard({ feiras }: { feiras: any[] }) {
 
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
                     {feiras.map((feira: any) => (
-                        <div key={feira.id} className="group rounded-2xl border border-primary/10 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/10">
+                        <div key={feira.id} className={`group rounded-2xl border border-primary/10 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/10 ${feira.is_sincronizando ? 'animate-pulse' : ''}`}>
                             <div className="mb-6 flex items-start justify-between">
                                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary/12 text-secondary">
                                     <span className="material-symbols-outlined text-[28px]">auto_stories</span>
                                 </div>
-                                <span className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest ${feira.status === 'EM_ANDAMENTO' ? 'bg-secondary/15 text-secondary' : 'bg-primary/10 text-primary'}`}>
-                                    <span className={`h-1.5 w-1.5 rounded-full ${feira.status === 'EM_ANDAMENTO' ? 'bg-secondary' : 'bg-primary'}`} /> {feira.status}
+                                <span className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest ${feira.is_sincronizando ? 'bg-primary animate-pulse text-white' : feira.status === 'EM_ANDAMENTO' ? 'bg-secondary/15 text-secondary' : 'bg-primary/10 text-primary'}`}>
+                                    <span className={`h-1.5 w-1.5 rounded-full ${feira.is_sincronizando ? 'bg-white animate-spin' : feira.status === 'EM_ANDAMENTO' ? 'bg-secondary' : 'bg-primary'}`} /> 
+                                    {feira.is_sincronizando ? 'Sincronizando...' : feira.status}
                                 </span>
                             </div>
                             <h3 className="font-[Manrope] text-xl font-bold text-primary">{feira.nome}</h3>

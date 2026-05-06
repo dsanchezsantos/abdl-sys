@@ -22,8 +22,8 @@ export default function AppSidebar({ activeItem = "dashboard" }: AppSidebarProps
     return (
         <nav className="fixed top-0 left-0 h-screen flex flex-col z-40 bg-[#283044] dark:bg-slate-950 w-64 shadow-[20px_0_40px_-10px_rgba(19,27,46,0.12)] font-manrope tracking-wide">
             <div className="px-6 py-8">
-                <span className="text-lg font-bold text-white tracking-widest uppercase block">ABDL-SYS</span>
-                <span className="text-slate-400 text-xs font-semibold mt-1 block">Management & Audit</span>
+                <span className="text-lg font-bold text-white tracking-widest uppercase block">ABDL</span>
+                <span className="text-slate-400 text-xs font-semibold mt-1 block">Auditoria e Análise Financeira</span>
             </div>
 
             <div className="flex flex-col flex-1 mt-4">

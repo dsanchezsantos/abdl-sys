@@ -20,6 +20,9 @@ class Feira extends Model
         "user_id_api",
         "ultima_sincronizacao_em",
         "status",
+        "is_sincronizando",
+        "ultimo_batch_id",
+        "status_integridade",
     ];
 
     protected $casts = [
@@ -27,6 +30,7 @@ class Feira extends Model
         "data_fim" => "datetime",
         "ultima_sincronizacao_em" => "datetime",
         "status" => FeiraStatus::class,
+        "is_sincronizando" => "boolean",
     ];
 
     /**

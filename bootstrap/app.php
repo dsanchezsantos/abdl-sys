@@ -16,7 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        //
+        $middleware->alias([
+            'feira.not_syncing' => \App\Http\Middleware\CheckFeiraNotSyncing::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -16,9 +16,13 @@ Route::middleware(["auth", "verified"])->group(function () {
     
     Route::post("/feiras", [FeiraController::class, "store"])->name("feiras.store");
     Route::get("/feiras/{feira}/auditoria", [FeiraController::class, "show"])->name("feiras.auditoria");
+    Route::post("/feiras/{feira}/sync", [FeiraController::class, "sync"])->name("feiras.sync");
+    Route::post('/feiras/{feira}/retry-sync', [FeiraController::class, 'retrySync'])->name('feiras.retry-sync');
 
     Route::get("/catalogo", [CatalogoController::class, "index"])->name("catalogo.index");
     Route::get("/relatorios", [RelatoriosController::class, "index"])->name("relatorios.index");
+    Route::post("/relatorios", [RelatoriosController::class, "store"])->name("relatorios.store");
+    Route::get("/relatorios/{relatorio}/download", [RelatoriosController::class, "download"])->name("relatorios.download");
 
     Route::get("/profile", [ProfileController::class, "edit"])->name("profile.edit");
     Route::patch("/profile", [ProfileController::class, "update"])->name("profile.update");

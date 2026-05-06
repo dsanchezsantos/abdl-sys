@@ -33,7 +33,7 @@ class Pagamento extends Model
     public function vendaHeader()
     {
         return $this->belongsTo(VendaHeader::class, 'sell_number', 'sell_number')
-                    ->where('id_feira', $this->id_feira);
+                    ->whereColumn('venda_headers.id_feira', 'pagamentos.id_feira');
     }
 
     /**
@@ -42,7 +42,7 @@ class Pagamento extends Model
     public function cartao()
     {
         return $this->belongsTo(Cartao::class, 'tag_code', 'tag_code')
-                    ->where('id_feira', $this->id_feira);
+                    ->whereColumn('cartoes.id_feira', 'pagamentos.id_feira');
     }
 
     /**
@@ -50,11 +50,18 @@ class Pagamento extends Model
      */
     public function scopeValidosParaRateio($query)
     {
-        return $query->where('payment_way', '!=', 'Desconto')
-                     ->where('payment_group', '!=', 'Pagamento sem grupo')
-                     ->whereHas('cartao', function ($q) {
-                         // Ignora tags marcadas como TESTE
-                         $q->where('classificacao', '!=', CartaoClassificacao::TESTE->value);
-                     });
+        return $query
+            // 1. Réplica do Python: df[paymentWay != 'DESCONTO']
+            ->whereRaw('UPPER(payment_way) NOT LIKE ?', ['%DESCONTO%'])
+            
+            // 2. Réplica do Python: df[payment_group != 'PAGAMENTO SEM GRUPO']
+            ->whereRaw('UPPER(payment_group) NOT LIKE ?', ['%PAGAMENTO SEM GRUPO%'])
+            
+            // 3. Réplica do Python: merge(df_cartoes, how='inner')
+            // Exige que o pagamento tenha um cartão vinculado no banco e que NÃO seja de teste.
+            // Isso automaticamente barra PIX, Dinheiro e Cartões Inválidos.
+            ->whereHas('cartao', function ($q) {
+                $q->where('classificacao', '!=', CartaoClassificacao::TESTE->value);
+            });
     }
 }

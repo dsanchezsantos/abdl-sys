@@ -15,7 +15,6 @@ class Relatorio extends Model
         'id_feira',
         'usuario_id',
         'tipo',
-        'parametros_filtro',
         'status',
         'caminho_arquivo',
         'tamanho_bytes',
@@ -24,7 +23,6 @@ class Relatorio extends Model
     ];
 
     protected $casts = [
-        'parametros_filtro' => 'array',
         'status' => RelatorioStatus::class,
     ];
 

@@ -35,4 +35,17 @@ return [
         ],
     ],
 
+    'nowigo' => [
+        'base_url'    => env('NOWIGO_API_URL', 'https://feiradolivro-saquarema2025.nowigo.com.br/app/sale.mdl'),
+        'limit_pages' => env('NOWIGO_SYNC_LIMIT'), // Para testes
+    ],
+
+    'gotenberg' => [
+        'url' => env('GOTENBERG_ENDPOINT', 'http://gotenberg:3000'),
+    ],
+
+    'quickchart' => [
+        'url' => env('QUICKCHART_URL', 'http://quickchart:3400'),
+    ],
+
 ];

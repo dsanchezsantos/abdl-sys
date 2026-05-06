@@ -11,18 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::dropIfExists('relatorios');
-
-        Schema::create('relatorios', function (Blueprint $table) {
+        Schema::create('erros_integracao', function (Blueprint $table) {
             $table->id();
             $table->foreignId('id_feira')->constrained('feiras')->onDelete('cascade');
-            $table->foreignId('usuario_id')->constrained('users')->onDelete('cascade');
-            $table->string('tipo'); // 'editoras', 'cartao', 'vendas'
-            $table->string('status')->default('FILA');
-            $table->string('caminho_arquivo')->nullable();
-            $table->bigInteger('tamanho_bytes')->nullable();
+            $table->integer('pagina');
+            $table->jsonb('payload_recebido')->nullable();
             $table->text('mensagem_erro')->nullable();
-            $table->integer('tempo_execucao_segundos')->nullable();
+            $table->string('status')->default('PENDENTE'); // PENDENTE, RESOLVIDO
             $table->timestamps();
         });
     }
@@ -32,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('relatorios');
+        Schema::dropIfExists('erros_integracao');
     }
 };
