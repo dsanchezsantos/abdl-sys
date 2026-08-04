@@ -12,8 +12,8 @@ services:
         networks:
             - abdl-sys-network
         ports:
-            - "${APP_PORT:-8889}:80"
-            - "${VITE_PORT:-5173}:5173"
+            - "${APP_PORT:-8890}:80"
+            - "${VITE_PORT:-8081}:5173"
         depends_on:
             - db
             - redis
@@ -52,7 +52,7 @@ services:
         networks:
             - abdl-sys-network
         ports:
-            - "5432:5432"
+            - "5445:5432"
 
     redis:
         image: redis:latest
@@ -63,7 +63,7 @@ services:
         networks:
             - abdl-sys-network
         ports:
-            - "${FORWARD_REDIS_PORT:-6379}:6379"
+            - "${FORWARD_REDIS_PORT:-6380}:6379"
 
     gotenberg:
         image: gotenberg/gotenberg:8
