@@ -13,7 +13,7 @@ services:
             - abdl-sys-network
         ports:
             - "${APP_PORT:-8890}:80"
-            - "${VITE_PORT:-8081}:5173"
+            - "${VITE_PORT:-8081}:8081"
         depends_on:
             - db
             - redis
