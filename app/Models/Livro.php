@@ -17,7 +17,6 @@ class Livro extends Model
         'editora',
         'representante',
         'categoria',
-        'isbn',
     ];
 
     protected $casts = [

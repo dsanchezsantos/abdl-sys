@@ -35,8 +35,6 @@ export default function Edit({
             <div className="min-h-screen bg-base font-[Inter] text-primary">
                 <AppSidebar
                     activeItem="perfil"
-                    brandTitle="The Archival Authority"
-                    brandSubtitle="MANAGEMENT & AUDIT"
                 />
 
                 <div className="ml-64">

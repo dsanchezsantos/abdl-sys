@@ -1,6 +1,6 @@
 import { Link, usePage } from "@inertiajs/react";
 
-type SidebarKey = "dashboard" | "feiras" | "catalogo" | "auditoria" | "relatorios" | "perfil";
+type SidebarKey = "dashboard" | "feiras" | "catalogo" | "cartoes" | "auditoria" | "relatorios" | "perfil";
 
 type AuthUser = {
     name: string;
@@ -35,6 +35,11 @@ export default function AppSidebar({ activeItem = "dashboard" }: AppSidebarProps
                 <Link className={itemClass("catalogo")} href={route("catalogo.index")}>
                     <span className="material-symbols-outlined mr-3">menu_book</span>
                     <span>Catálogo</span>
+                </Link>
+
+                <Link className={itemClass("cartoes")} href={route("cartoes.index")}>
+                    <span className="material-symbols-outlined mr-3">credit_card</span>
+                    <span>Cartões</span>
                 </Link>
 
                 <Link className={itemClass("relatorios")} href={route("relatorios.index")}>

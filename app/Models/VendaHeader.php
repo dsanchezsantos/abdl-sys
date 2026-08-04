@@ -40,8 +40,7 @@ class VendaHeader extends Model
      */
     public function pagamentos()
     {
-        return $this->hasMany(Pagamento::class, 'sell_number', 'sell_number')
-                    ->where('id_feira', $this->id_feira);
+        return $this->hasMany(Pagamento::class, 'sell_number', 'sell_number');
     }
 
     /**
@@ -49,7 +48,6 @@ class VendaHeader extends Model
      */
     public function itensVenda()
     {
-        return $this->hasMany(ItemVenda::class, 'sell_number', 'sell_number')
-                    ->where('id_feira', $this->id_feira);
+        return $this->hasMany(ItemVenda::class, 'sell_number', 'sell_number');
     }
 }

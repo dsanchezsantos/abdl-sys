@@ -93,8 +93,22 @@ class ProcessarPaginaVendaJob implements ShouldQueue
         $response = $nowigo->buscarDetalhe($sellNumber, $saleType);
         $detail = $response['data'] ?? [];
         
+        // Calcular o valor total real a partir dos pagamentos ou produtos no detalhe
+        $totalValue = 0.0;
+        if (!empty($detail['payments'])) {
+            foreach ($detail['payments'] as $p) {
+                $totalValue += NowigoService::parseMoney($p['value'] ?? 0);
+            }
+        } elseif (!empty($detail['products'])) {
+            foreach ($detail['products'] as $pr) {
+                $totalValue += NowigoService::parseMoney($pr['totalValue'] ?? 0);
+            }
+        } else {
+            $totalValue = NowigoService::parseMoney($header['totalValue'] ?? 0);
+        }
+
         try {
-            DB::transaction(function () use ($header, $detail, $sellNumber) {
+            DB::transaction(function () use ($header, $detail, $sellNumber, $totalValue) {
                 // 1. Descoberta de Cartões
                 $this->upsertCartoes($detail['payments'] ?? []);
 
@@ -103,7 +117,7 @@ class ProcessarPaginaVendaJob implements ShouldQueue
                     ['id_feira' => $this->feiraId, 'sell_number' => $sellNumber],
                     [
                         'sale_type' => $header['type'] ?? null,
-                        'total_value' => NowigoService::parseMoney($header['totalValue']),
+                        'total_value' => $totalValue,
                         'date_hour' => !empty($header['dateHour']) 
                             ? ($this->parseBrazilianDate($header['dateHour']))
                             : null,
@@ -134,11 +148,12 @@ class ProcessarPaginaVendaJob implements ShouldQueue
         $cartoes = [];
         foreach ($payments as $p) {
             $tag = NowigoService::normalizeText($p['tagCode'] ?? null);
-            if ($tag && !in_array($tag, ['NÃO DISPONÍVEL', 'NAO DISPONIVEL', 'N/A'])) {
+            $group = NowigoService::normalizeText($p['group'] ?? null);
+            if ($tag && !in_array($tag, ['NÃO DISPONÍVEL', 'NAO DISPONIVEL', 'N/A']) && $group !== 'PAGAMENTO SEM GRUPO') {
                 $cartoes[] = [
                     'id_feira' => $this->feiraId,
                     'tag_code' => $tag,
-                    'grupo' => NowigoService::normalizeText($p['group'] ?? null),
+                    'grupo' => $group,
                     'updated_at' => now(),
                 ];
             }

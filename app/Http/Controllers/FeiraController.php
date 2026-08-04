@@ -45,7 +45,59 @@ class FeiraController extends Controller
         return Inertia::render("Feiras/Auditoria", [
             "feira" => $feira->only('id', 'nome', 'is_sincronizando', 'data_inicio', 'data_fim', 'status', 'status_integridade'),
             "estatisticas" => Inertia::lazy(fn () => $feira->estatistica),
-            "ultimas_vendas" => Inertia::lazy(fn () => $feira->vendas()->latest('date_hour')->limit(10)->get()),
+            "ultimas_vendas" => Inertia::lazy(fn () => $feira->vendas()->with([
+                'itensVenda' => fn($q) => $q->where('id_feira', $feira->id),
+                'pagamentos' => fn($q) => $q->where('id_feira', $feira->id)
+            ])->latest('date_hour')->limit(10)->get()),
+        ]);
+    }
+
+    /**
+     * Exibe a lista de vendas da feira com paginação, filtros e relações (itens e pagamentos).
+     */
+    public function vendas(Request $request, Feira $feira)
+    {
+        $query = $feira->vendas()->with([
+            'itensVenda' => fn($q) => $q->where('id_feira', $feira->id),
+            'pagamentos' => fn($q) => $q->where('id_feira', $feira->id)
+        ])->latest('date_hour');
+
+        // Aplicar filtros
+        if ($request->filled('search')) {
+            $query->where('sell_number', 'like', '%' . $request->input('search') . '%');
+        }
+
+        if ($request->filled('sale_type')) {
+            $query->where('sale_type', $request->input('sale_type'));
+        }
+
+        if ($request->filled('box')) {
+            $query->where('box', $request->input('box'));
+        }
+
+        if ($request->filled('min_value')) {
+            $query->where('total_value', '>=', $request->input('min_value'));
+        }
+
+        if ($request->filled('max_value')) {
+            $query->where('total_value', '<=', $request->input('max_value'));
+        }
+
+        $vendas = $query->paginate(100)->withQueryString();
+
+        // Obter caixas únicos para o filtro select
+        $boxes = $feira->vendas()
+            ->whereNotNull('box')
+            ->where('box', '!=', '')
+            ->distinct()
+            ->orderBy('box')
+            ->pluck('box');
+
+        return Inertia::render("Feiras/Vendas", [
+            "feira" => $feira->only('id', 'nome', 'is_sincronizando', 'status', 'status_integridade'),
+            "vendas" => $vendas,
+            "filters" => $request->only(['search', 'sale_type', 'box', 'min_value', 'max_value']),
+            "boxes" => $boxes,
         ]);
     }
 

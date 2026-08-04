@@ -67,27 +67,41 @@ class RelatorioDataService
             })
             ->whereIn('p.sell_number', $sellNumbers)
             ->where('p.id_feira', $feiraId)
+            ->whereRaw('UPPER(p.payment_way) NOT LIKE ?', ['%DESCONTO%'])
+            ->whereRaw('UPPER(p.payment_group) NOT LIKE ?', ['%PAGAMENTO SEM GRUPO%'])
+            ->where('c.classificacao', '!=', \App\Enums\CartaoClassificacao::TESTE->value)
             ->selectRaw('
                 SUM(p.value)::numeric                           AS total_gasto,
                 AVG(gastos_por_cartao.total_cartao)::numeric    AS media_gasto,
                 COUNT(DISTINCT p.tag_code)                      AS total_cartoes
             ')
             ->crossJoin(DB::raw('(
-                SELECT tag_code, SUM(value) as total_cartao
-                FROM pagamentos
-                WHERE id_feira = ' . $feiraId . '
-                  AND sell_number = ANY(ARRAY[\'' . implode("','", $sellNumbers) . '\'])
-                GROUP BY tag_code
+                SELECT p2.tag_code, SUM(p2.value) as total_cartao
+                FROM pagamentos p2
+                JOIN cartoes c2 ON p2.tag_code = c2.tag_code AND p2.id_feira = c2.id_feira
+                WHERE p2.id_feira = ' . $feiraId . '
+                  AND p2.sell_number = ANY(ARRAY[\'' . implode("','", $sellNumbers) . '\'])
+                  AND UPPER(p2.payment_way) NOT LIKE \'%DESCONTO%\'
+                  AND UPPER(p2.payment_group) NOT LIKE \'%PAGAMENTO SEM GRUPO%\'
+                  AND c2.classificacao != \'' . \App\Enums\CartaoClassificacao::TESTE->value . '\'
+                GROUP BY p2.tag_code
             ) as gastos_por_cartao'))
             ->first();
 
         // Conta cartões que esgotaram o saldo inicial de R$ 250,00
-        $cartoesZerados = DB::table('pagamentos')
-            ->select('tag_code')
-            ->whereIn('sell_number', $sellNumbers)
-            ->where('id_feira', $feiraId)
-            ->groupBy('tag_code')
-            ->havingRaw('SUM(value) >= ?', [self::SALDO_INICIAL_CARTAO])
+        $cartoesZerados = DB::table('pagamentos as p')
+            ->join('cartoes as c', function ($join) {
+                $join->on('p.tag_code', '=', 'c.tag_code')
+                     ->on('p.id_feira', '=', 'c.id_feira');
+            })
+            ->select('p.tag_code')
+            ->whereIn('p.sell_number', $sellNumbers)
+            ->where('p.id_feira', $feiraId)
+            ->whereRaw('UPPER(p.payment_way) NOT LIKE ?', ['%DESCONTO%'])
+            ->whereRaw('UPPER(p.payment_group) NOT LIKE ?', ['%PAGAMENTO SEM GRUPO%'])
+            ->where('c.classificacao', '!=', \App\Enums\CartaoClassificacao::TESTE->value)
+            ->groupBy('p.tag_code')
+            ->havingRaw('SUM(p.value) >= ?', [self::SALDO_INICIAL_CARTAO])
             ->get()
             ->count();
 
@@ -112,8 +126,15 @@ class RelatorioDataService
                 $join->on('p.sell_number', '=', 'vh.sell_number')
                      ->on('p.id_feira', '=', 'vh.id_feira');
             })
+            ->join('cartoes as c', function ($join) {
+                $join->on('p.tag_code', '=', 'c.tag_code')
+                     ->on('p.id_feira', '=', 'c.id_feira');
+            })
             ->whereIn('p.sell_number', $sellNumbers)
             ->where('p.id_feira', $feiraId)
+            ->whereRaw('UPPER(p.payment_way) NOT LIKE ?', ['%DESCONTO%'])
+            ->whereRaw('UPPER(p.payment_group) NOT LIKE ?', ['%PAGAMENTO SEM GRUPO%'])
+            ->where('c.classificacao', '!=', \App\Enums\CartaoClassificacao::TESTE->value)
             ->selectRaw("TO_CHAR(vh.date_hour, 'DD/MM/YYYY') AS dia, SUM(p.value) AS total")
             ->groupBy('dia')
             ->orderBy('dia')
@@ -140,6 +161,9 @@ class RelatorioDataService
             })
             ->whereIn('p.sell_number', $sellNumbers)
             ->where('p.id_feira', $feiraId)
+            ->whereRaw('UPPER(p.payment_way) NOT LIKE ?', ['%DESCONTO%'])
+            ->whereRaw('UPPER(p.payment_group) NOT LIKE ?', ['%PAGAMENTO SEM GRUPO%'])
+            ->where('c.classificacao', '!=', \App\Enums\CartaoClassificacao::TESTE->value)
             ->selectRaw('
                 p.tag_code                          AS codigo,
                 p.payment_group                     AS grupo,
@@ -163,6 +187,10 @@ class RelatorioDataService
                 $join->on('p.sell_number', '=', 'vh.sell_number')
                      ->on('p.id_feira', '=', 'vh.id_feira');
             })
+            ->join('cartoes as c', function ($join) {
+                $join->on('p.tag_code', '=', 'c.tag_code')
+                     ->on('p.id_feira', '=', 'c.id_feira');
+            })
             ->leftJoin(DB::raw('(
                 SELECT iv.sell_number, STRING_AGG(DISTINCT iv.name, \', \') AS livros
                 FROM itens_venda iv
@@ -172,6 +200,9 @@ class RelatorioDataService
             ->where('p.tag_code', $tagCode)
             ->whereIn('p.sell_number', $sellNumbers)
             ->where('p.id_feira', $feiraId)
+            ->whereRaw('UPPER(p.payment_way) NOT LIKE ?', ['%DESCONTO%'])
+            ->whereRaw('UPPER(p.payment_group) NOT LIKE ?', ['%PAGAMENTO SEM GRUPO%'])
+            ->where('c.classificacao', '!=', \App\Enums\CartaoClassificacao::TESTE->value)
             ->selectRaw("
                 vh.date_hour    AS data_hora,
                 p.sell_number   AS venda,
@@ -196,8 +227,15 @@ class RelatorioDataService
     public function getKpisVendas(int $feiraId, array $sellNumbers): array
     {
         $resultado = DB::table('pagamentos as p')
+            ->join('cartoes as c', function ($join) {
+                $join->on('p.tag_code', '=', 'c.tag_code')
+                     ->on('p.id_feira', '=', 'c.id_feira');
+            })
             ->whereIn('p.sell_number', $sellNumbers)
             ->where('p.id_feira', $feiraId)
+            ->whereRaw('UPPER(p.payment_way) NOT LIKE ?', ['%DESCONTO%'])
+            ->whereRaw('UPPER(p.payment_group) NOT LIKE ?', ['%PAGAMENTO SEM GRUPO%'])
+            ->where('c.classificacao', '!=', \App\Enums\CartaoClassificacao::TESTE->value)
             ->selectRaw('
                 COUNT(DISTINCT p.sell_number)::int AS total_vendas,
                 SUM(p.value)::numeric              AS total_arrecadado
@@ -221,8 +259,15 @@ class RelatorioDataService
                 $join->on('p.sell_number', '=', 'vh.sell_number')
                      ->on('p.id_feira', '=', 'vh.id_feira');
             })
+            ->join('cartoes as c', function ($join) {
+                $join->on('p.tag_code', '=', 'c.tag_code')
+                     ->on('p.id_feira', '=', 'c.id_feira');
+            })
             ->whereIn('p.sell_number', $sellNumbers)
             ->where('p.id_feira', $feiraId)
+            ->whereRaw('UPPER(p.payment_way) NOT LIKE ?', ['%DESCONTO%'])
+            ->whereRaw('UPPER(p.payment_group) NOT LIKE ?', ['%PAGAMENTO SEM GRUPO%'])
+            ->where('c.classificacao', '!=', \App\Enums\CartaoClassificacao::TESTE->value)
             ->selectRaw("TO_CHAR(vh.date_hour, 'DD/MM') AS dia, SUM(p.value) AS total")
             ->groupBy('dia')
             ->orderBy('dia')
@@ -245,6 +290,10 @@ class RelatorioDataService
                 $join->on('p.sell_number', '=', 'vh.sell_number')
                      ->on('p.id_feira', '=', 'vh.id_feira');
             })
+            ->join('cartoes as c', function ($join) {
+                $join->on('p.tag_code', '=', 'c.tag_code')
+                     ->on('p.id_feira', '=', 'c.id_feira');
+            })
             ->join('itens_venda as iv', function ($join) {
                 $join->on('p.sell_number', '=', 'iv.sell_number')
                      ->on('p.id_feira', '=', 'iv.id_feira');
@@ -255,6 +304,9 @@ class RelatorioDataService
             })
             ->whereIn('p.sell_number', $sellNumbers)
             ->where('p.id_feira', $feiraId)
+            ->whereRaw('UPPER(p.payment_way) NOT LIKE ?', ['%DESCONTO%'])
+            ->whereRaw('UPPER(p.payment_group) NOT LIKE ?', ['%PAGAMENTO SEM GRUPO%'])
+            ->where('c.classificacao', '!=', \App\Enums\CartaoClassificacao::TESTE->value)
             ->selectRaw("
                 TO_CHAR(vh.date_hour, 'DD/MM') AS dia,
                 COALESCE(l.representante, 'NÃO INFORMADO') AS representante,
@@ -296,9 +348,14 @@ class RelatorioDataService
                 GROUP BY sell_number
             ) AS itens_agg'), 'vh.sell_number', '=', 'itens_agg.sell_number')
             ->leftJoin(DB::raw('(
-                SELECT sell_number, SUM(value) AS total_pago
-                FROM pagamentos WHERE id_feira = ' . $feiraId . '
-                GROUP BY sell_number
+                SELECT p.sell_number, SUM(p.value) AS total_pago
+                FROM pagamentos p
+                JOIN cartoes c ON p.tag_code = c.tag_code AND p.id_feira = c.id_feira
+                WHERE p.id_feira = ' . $feiraId . '
+                  AND UPPER(p.payment_way) NOT LIKE \'%DESCONTO%\'
+                  AND UPPER(p.payment_group) NOT LIKE \'%PAGAMENTO SEM GRUPO%\'
+                  AND c.classificacao != \'' . \App\Enums\CartaoClassificacao::TESTE->value . '\'
+                GROUP BY p.sell_number
             ) AS pag_agg'), 'vh.sell_number', '=', 'pag_agg.sell_number')
             ->selectRaw("
                 vh.sell_number,
@@ -318,12 +375,15 @@ class RelatorioDataService
     public function getPagamentosPorVenda(int $feiraId, string $sellNumber): \Illuminate\Support\Collection
     {
         return DB::table('pagamentos as p')
-            ->leftJoin('cartoes as c', function ($join) {
+            ->join('cartoes as c', function ($join) {
                 $join->on('p.tag_code', '=', 'c.tag_code')
                      ->on('p.id_feira', '=', 'c.id_feira');
             })
             ->where('p.sell_number', $sellNumber)
             ->where('p.id_feira', $feiraId)
+            ->whereRaw('UPPER(p.payment_way) NOT LIKE ?', ['%DESCONTO%'])
+            ->whereRaw('UPPER(p.payment_group) NOT LIKE ?', ['%PAGAMENTO SEM GRUPO%'])
+            ->where('c.classificacao', '!=', \App\Enums\CartaoClassificacao::TESTE->value)
             ->selectRaw('
                 p.payment_way,
                 p.tag_code,
@@ -353,10 +413,17 @@ class RelatorioDataService
             ->selectRaw('SUM(iv.amount)::int AS total_livros')
             ->first();
 
-        $totalArrecadado = DB::table('pagamentos')
-            ->whereIn('sell_number', $sellNumbers)
-            ->where('id_feira', $feiraId)
-            ->sum('value');
+        $totalArrecadado = DB::table('pagamentos as p')
+            ->join('cartoes as c', function ($join) {
+                $join->on('p.tag_code', '=', 'c.tag_code')
+                     ->on('p.id_feira', '=', 'c.id_feira');
+            })
+            ->whereIn('p.sell_number', $sellNumbers)
+            ->where('p.id_feira', $feiraId)
+            ->whereRaw('UPPER(p.payment_way) NOT LIKE ?', ['%DESCONTO%'])
+            ->whereRaw('UPPER(p.payment_group) NOT LIKE ?', ['%PAGAMENTO SEM GRUPO%'])
+            ->where('c.classificacao', '!=', \App\Enums\CartaoClassificacao::TESTE->value)
+            ->sum('p.value');
 
         return [
             'total_livros'     => (int) ($resultado->total_livros ?? 0),
@@ -407,10 +474,14 @@ class RelatorioDataService
                 )::numeric AS faturamento_cartao
             ")
             ->join(DB::raw('(
-                SELECT sell_number, SUM(value) AS total_pago_cartao
-                FROM pagamentos
-                WHERE id_feira = ' . $feiraId . '
-                GROUP BY sell_number
+                SELECT p.sell_number, SUM(p.value) AS total_pago_cartao
+                FROM pagamentos p
+                JOIN cartoes c ON p.tag_code = c.tag_code AND p.id_feira = c.id_feira
+                WHERE p.id_feira = ' . $feiraId . '
+                  AND UPPER(p.payment_way) NOT LIKE \'%DESCONTO%\'
+                  AND UPPER(p.payment_group) NOT LIKE \'%PAGAMENTO SEM GRUPO%\'
+                  AND c.classificacao != \'' . \App\Enums\CartaoClassificacao::TESTE->value . '\'
+                GROUP BY p.sell_number
             ) AS pag_venda'), 'iv.sell_number', '=', 'pag_venda.sell_number')
             ->join(DB::raw('(
                 SELECT sell_number, SUM(total_value) AS total_bruto
@@ -466,8 +537,14 @@ class RelatorioDataService
                      ->on('iv.id_feira', '=', 'l.id_feira');
             })
             ->join(DB::raw('(
-                SELECT sell_number, SUM(value) AS total_pago_cartao
-                FROM pagamentos WHERE id_feira = ' . $feiraId . ' GROUP BY sell_number
+                SELECT p.sell_number, SUM(p.value) AS total_pago_cartao
+                FROM pagamentos p
+                JOIN cartoes c ON p.tag_code = c.tag_code AND p.id_feira = c.id_feira
+                WHERE p.id_feira = ' . $feiraId . '
+                  AND UPPER(p.payment_way) NOT LIKE \'%DESCONTO%\'
+                  AND UPPER(p.payment_group) NOT LIKE \'%PAGAMENTO SEM GRUPO%\'
+                  AND c.classificacao != \'' . \App\Enums\CartaoClassificacao::TESTE->value . '\'
+                GROUP BY p.sell_number
             ) AS pag_venda'), 'iv.sell_number', '=', 'pag_venda.sell_number')
             ->join(DB::raw('(
                 SELECT sell_number, SUM(total_value) AS total_bruto
@@ -518,8 +595,14 @@ class RelatorioDataService
                      ->on('iv.id_feira', '=', 'l.id_feira');
             })
             ->join(DB::raw('(
-                SELECT sell_number, SUM(value) AS total_pago_cartao
-                FROM pagamentos WHERE id_feira = ' . $feiraId . ' GROUP BY sell_number
+                SELECT p.sell_number, SUM(p.value) AS total_pago_cartao
+                FROM pagamentos p
+                JOIN cartoes c ON p.tag_code = c.tag_code AND p.id_feira = c.id_feira
+                WHERE p.id_feira = ' . $feiraId . '
+                  AND UPPER(p.payment_way) NOT LIKE \'%DESCONTO%\'
+                  AND UPPER(p.payment_group) NOT LIKE \'%PAGAMENTO SEM GRUPO%\'
+                  AND c.classificacao != \'' . \App\Enums\CartaoClassificacao::TESTE->value . '\'
+                GROUP BY p.sell_number
             ) AS pag_venda'), 'iv.sell_number', '=', 'pag_venda.sell_number')
             ->join(DB::raw('(
                 SELECT sell_number, SUM(total_value) AS total_bruto
@@ -561,8 +644,14 @@ class RelatorioDataService
                      ->on('iv.id_feira', '=', 'l.id_feira');
             })
             ->join(DB::raw('(
-                SELECT sell_number, SUM(value) AS total_pago_cartao
-                FROM pagamentos WHERE id_feira = ' . $feiraId . ' GROUP BY sell_number
+                SELECT p.sell_number, SUM(p.value) AS total_pago_cartao
+                FROM pagamentos p
+                JOIN cartoes c ON p.tag_code = c.tag_code AND p.id_feira = c.id_feira
+                WHERE p.id_feira = ' . $feiraId . '
+                  AND UPPER(p.payment_way) NOT LIKE \'%DESCONTO%\'
+                  AND UPPER(p.payment_group) NOT LIKE \'%PAGAMENTO SEM GRUPO%\'
+                  AND c.classificacao != \'' . \App\Enums\CartaoClassificacao::TESTE->value . '\'
+                GROUP BY p.sell_number
             ) AS pag_venda'), 'iv.sell_number', '=', 'pag_venda.sell_number')
             ->join(DB::raw('(
                 SELECT sell_number, SUM(total_value) AS total_bruto

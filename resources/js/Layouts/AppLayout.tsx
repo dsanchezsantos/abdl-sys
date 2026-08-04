@@ -3,7 +3,7 @@ import { PropsWithChildren, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
 import toast, { Toaster } from "react-hot-toast";
 
-type SidebarKey = "dashboard" | "feiras" | "catalogo" | "auditoria" | "relatorios" | "perfil";
+type SidebarKey = "dashboard" | "feiras" | "catalogo" | "cartoes" | "auditoria" | "relatorios" | "perfil";
 
 interface Props extends PropsWithChildren {
     activeItem?: SidebarKey;
