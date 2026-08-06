@@ -217,7 +217,7 @@ class FeiraController extends Controller
 
         $feira->update(['is_sincronizando' => true, 'status_integridade' => 'INTEGRO']);
 
-        SincronizarFeiraMaestroJob::dispatch($feira->id);
+        SincronizarFeiraMaestroJob::dispatch($feira->id, auth()->id());
 
         return back()->with('success', 'Sincronização iniciada com sucesso.');
     }

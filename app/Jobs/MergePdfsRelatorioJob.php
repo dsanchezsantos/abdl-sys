@@ -73,6 +73,10 @@ class MergePdfsRelatorioJob implements ShouldQueue
                 'status' => RelatorioStatus::FALHA,
                 'mensagem_erro' => "Erro no merge final: " . $e->getMessage()
             ]);
+
+            if ($this->relatorio->usuario) {
+                $this->relatorio->usuario->notify(new \App\Notifications\RelatorioFalhaNotification($this->relatorio));
+            }
             throw $e;
         } finally {
             // LIMPEZA FINAL: Apagar os PDFs parciais (chunks)

@@ -89,6 +89,10 @@ class GerarRelatorioJob implements ShouldQueue
                 'status' => RelatorioStatus::FALHA,
                 'mensagem_erro' => "Erro na orquestração: " . $e->getMessage()
             ]);
+
+            if ($this->relatorio->usuario) {
+                $this->relatorio->usuario->notify(new \App\Notifications\RelatorioFalhaNotification($this->relatorio));
+            }
         }
     }
 }

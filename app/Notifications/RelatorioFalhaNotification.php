@@ -2,13 +2,12 @@
 
 namespace App\Notifications;
 
-use App\Models\Relatorio;
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
 
-class RelatorioConcluidoNotification extends Notification implements ShouldQueue
+class RelatorioFalhaNotification extends Notification
 {
     use Queueable;
 
@@ -17,7 +16,7 @@ class RelatorioConcluidoNotification extends Notification implements ShouldQueue
     /**
      * Create a new notification instance.
      */
-    public function __construct(Relatorio $relatorio)
+    public function __construct(\App\Models\Relatorio $relatorio)
     {
         $this->relatorio = $relatorio;
     }
@@ -40,10 +39,10 @@ class RelatorioConcluidoNotification extends Notification implements ShouldQueue
         $tipoLabel = strtoupper($this->relatorio->tipo);
 
         return (new MailMessage)
-            ->subject("ABDL-sys - Relatório Concluído: {$tipoLabel}")
+            ->subject("ABDL-sys - Falha no Relatório: {$tipoLabel}")
             ->view('emails.relatorio', [
                 'relatorio' => $this->relatorio,
-                'status' => 'concluido',
+                'status' => 'falha',
             ]);
     }
 
@@ -58,10 +57,8 @@ class RelatorioConcluidoNotification extends Notification implements ShouldQueue
             'relatorio_id' => $this->relatorio->id,
             'feira_nome' => $this->relatorio->feira->nome ?? 'N/A',
             'tipo' => $this->relatorio->tipo,
-            'status' => 'CONCLUIDO',
-            'download_url' => $this->relatorio->urlDownloadSegura(),
-            'tamanho_bytes' => $this->relatorio->tamanho_bytes,
-            'message' => "O relatório {$this->relatorio->tipo} da feira {$this->relatorio->feira->nome} está pronto para download.",
+            'status' => 'FALHA',
+            'message' => "Ocorreu uma falha ao gerar o relatório {$this->relatorio->tipo} da feira " . ($this->relatorio->feira->nome ?? 'N/A') . ".",
         ];
     }
 }

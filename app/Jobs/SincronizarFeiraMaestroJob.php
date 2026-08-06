@@ -20,13 +20,15 @@ class SincronizarFeiraMaestroJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected int $feiraId;
+    protected ?int $usuarioId;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(int $feiraId)
+    public function __construct(int $feiraId, ?int $usuarioId = null)
     {
         $this->feiraId = $feiraId;
+        $this->usuarioId = $usuarioId;
     }
 
     /**
@@ -73,18 +75,27 @@ class SincronizarFeiraMaestroJob implements ShouldQueue
 
             Log::info("Feira #{$feira->id}: Definido perPage={$perPage}. Total de páginas recalculadas: {$totalPages}");
 
+            $usuarioId = $this->usuarioId;
+
             // 3. Criar o Lote (Batch) Inicial
             $batch = Bus::batch([])
                 ->name("Sincronização Feira #{$feira->id}: {$feira->nome}")
                 ->allowFailures()
-                ->then(function (Batch $batch) use ($feira) {
+                ->then(function (Batch $batch) use ($feira, $usuarioId) {
                     Log::info("Lote de sincronização finalizado com SUCESSO para a Feira #{$feira->id}");
                     CalcularEstatisticasFeiraJob::dispatch($feira->id);
+
+                    if ($usuarioId) {
+                        $usuario = \App\Models\User::find($usuarioId);
+                        if ($usuario) {
+                            $usuario->notify(new \App\Notifications\SincronizacaoFeiraNotification($feira, 'sucesso'));
+                        }
+                    }
                 })
                 ->catch(function (Batch $batch, Throwable $e) use ($feira) {
                     Log::error("ERRO crítico no lote de sincronização para a Feira #{$feira->id}: " . $e->getMessage());
                 })
-                ->finally(function (Batch $batch) use ($feira) {
+                ->finally(function (Batch $batch) use ($feira, $usuarioId) {
                     $statusIntegridade = $batch->hasFailures() ? 'FALHA_PARCIAL' : 'INTEGRO';
                     
                     $feira->update([
@@ -94,6 +105,13 @@ class SincronizarFeiraMaestroJob implements ShouldQueue
                     ]);
                     
                     Log::info("Lote de sincronização CONCLUÍDO ({$statusIntegridade}) para a Feira #{$feira->id}");
+
+                    if ($statusIntegridade === 'FALHA_PARCIAL' && $usuarioId) {
+                        $usuario = \App\Models\User::find($usuarioId);
+                        if ($usuario) {
+                            $usuario->notify(new \App\Notifications\SincronizacaoFeiraNotification($feira, 'falha_parcial'));
+                        }
+                    }
                 })
                 ->dispatch();
 
@@ -139,6 +157,14 @@ class SincronizarFeiraMaestroJob implements ShouldQueue
             ]);
 
             $feira->update(['is_sincronizando' => false, 'status_integridade' => 'FALHA_PARCIAL']);
+
+            if ($this->usuarioId) {
+                $usuario = \App\Models\User::find($this->usuarioId);
+                if ($usuario) {
+                    $usuario->notify(new \App\Notifications\SincronizacaoFeiraNotification($feira, 'erro_critico', $e->getMessage()));
+                }
+            }
+
             throw $e;
         }
     }
