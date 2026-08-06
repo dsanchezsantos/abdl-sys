@@ -81,7 +81,7 @@ services:
 
     quickchart:
         build:
-            context: https://github.com/typpo/quickchart.git#main
+            context: https://github.com/typpo/quickchart.git#master
         container_name: abdl-sys-quickchart
         restart: unless-stopped
         networks:
