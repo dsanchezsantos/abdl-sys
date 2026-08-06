@@ -36,6 +36,7 @@ class Livro extends Model
      */
     public function itensVenda()
     {
-        return $this->hasMany(ItemVenda::class, 'produto_id_api', 'produto_id_api');
+        return $this->hasMany(ItemVenda::class, 'name', 'produto')
+                    ->whereColumn('itens_venda.id_feira', 'livros.id_feira');
     }
 }

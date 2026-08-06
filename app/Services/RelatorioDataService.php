@@ -299,7 +299,7 @@ class RelatorioDataService
                      ->on('p.id_feira', '=', 'iv.id_feira');
             })
             ->leftJoin('livros as l', function ($join) {
-                $join->on('iv.produto_id_api', '=', 'l.produto_id_api')
+                $join->on('iv.name', '=', 'l.produto')
                      ->on('iv.id_feira', '=', 'l.id_feira');
             })
             ->whereIn('p.sell_number', $sellNumbers)
@@ -453,7 +453,7 @@ class RelatorioDataService
             ->whereIn('iv.sell_number', $sellNumbers)
             ->where('iv.id_feira', $feiraId)
             ->leftJoin('livros as l', function ($join) {
-                $join->on('iv.produto_id_api', '=', 'l.produto_id_api')
+                $join->on('iv.name', '=', 'l.produto')
                      ->on('iv.id_feira', '=', 'l.id_feira');
             })
             ->selectRaw("
@@ -533,7 +533,7 @@ class RelatorioDataService
                      ->on('iv.id_feira', '=', 'vh.id_feira');
             })
             ->leftJoin('livros as l', function ($join) {
-                $join->on('iv.produto_id_api', '=', 'l.produto_id_api')
+                $join->on('iv.name', '=', 'l.produto')
                      ->on('iv.id_feira', '=', 'l.id_feira');
             })
             ->join(DB::raw('(
@@ -591,7 +591,7 @@ class RelatorioDataService
             ->whereIn('iv.sell_number', $sellNumbers)
             ->where('iv.id_feira', $feiraId)
             ->leftJoin('livros as l', function ($join) {
-                $join->on('iv.produto_id_api', '=', 'l.produto_id_api')
+                $join->on('iv.name', '=', 'l.produto')
                      ->on('iv.id_feira', '=', 'l.id_feira');
             })
             ->join(DB::raw('(
@@ -640,7 +640,7 @@ class RelatorioDataService
             ->whereIn('iv.sell_number', $sellNumbers)
             ->where('iv.id_feira', $feiraId)
             ->leftJoin('livros as l', function ($join) {
-                $join->on('iv.produto_id_api', '=', 'l.produto_id_api')
+                $join->on('iv.name', '=', 'l.produto')
                      ->on('iv.id_feira', '=', 'l.id_feira');
             })
             ->join(DB::raw('(

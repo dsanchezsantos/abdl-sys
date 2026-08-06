@@ -210,7 +210,8 @@ class ProcessarPaginaVendaJob implements ShouldQueue
             ];
 
             if ($apiId) {
-                $bookRecords[] = [
+                // Usando o nome como chave para agrupar duplicados da mesma transação antes do upsert
+                $bookRecords[$name] = [
                     'id_feira' => $this->feiraId,
                     'produto_id_api' => $apiId,
                     'produto' => $name,
@@ -225,9 +226,9 @@ class ProcessarPaginaVendaJob implements ShouldQueue
         }
 
         if (!empty($bookRecords)) {
-            // Upsert livros, mas sem sobrescrever editora/representante se já existirem
-            // O Laravel upsert não suporta COALESCE nativamente, mas podemos usar a estratégia de ignorar colunas enriquecidas
-            Livro::upsert($bookRecords, ['id_feira', 'produto_id_api'], ['produto', 'valor', 'updated_at']);
+            // Upsert livros usando a chave única ['id_feira', 'produto'] (nome do livro)
+            // Preserva as colunas manuais 'editora' e 'representante' não incluindo-as no terceiro argumento
+            Livro::upsert(array_values($bookRecords), ['id_feira', 'produto'], ['valor', 'produto_id_api', 'updated_at']);
         }
     }
 

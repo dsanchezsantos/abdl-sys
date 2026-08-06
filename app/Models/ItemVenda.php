@@ -43,7 +43,7 @@ class ItemVenda extends Model
      */
     public function livro()
     {
-        return $this->belongsTo(Livro::class, 'produto_id_api', 'produto_id_api')
-                    ->where('id_feira', $this->id_feira);
+        return $this->belongsTo(Livro::class, 'name', 'produto')
+                    ->whereColumn('livros.id_feira', 'itens_venda.id_feira');
     }
 }

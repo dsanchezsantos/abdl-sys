@@ -78,7 +78,7 @@ class CalcularEstatisticasFeiraJob implements ShouldQueue
             ->whereIn('itens_venda.sell_number', $vendasValidasQuery) // Proteção aplicada
             ->join('livros', function($join) {
                 $join->on('itens_venda.id_feira', '=', 'livros.id_feira')
-                     ->on('itens_venda.produto_id_api', '=', 'livros.produto_id_api');
+                     ->on('itens_venda.name', '=', 'livros.produto');
             })
             ->select('livros.representante', DB::raw('SUM(itens_venda.total_value) as total'))
             ->groupBy('livros.representante')

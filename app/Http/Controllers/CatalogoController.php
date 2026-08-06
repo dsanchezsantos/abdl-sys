@@ -97,7 +97,7 @@ class CatalogoController extends Controller
         // Estatísticas de vendas agrupadas por feira
         $estatisticasFeiras = DB::table('itens_venda as iv')
             ->join('feiras as f', 'iv.id_feira', '=', 'f.id')
-            ->where('iv.produto_id_api', $livro->produto_id_api)
+            ->where('iv.name', $livro->produto)
             ->selectRaw('
                 f.id as feira_id,
                 f.nome as feira_nome,
@@ -113,7 +113,7 @@ class CatalogoController extends Controller
                 ->from('itens_venda')
                 ->whereColumn('itens_venda.sell_number', 'venda_headers.sell_number')
                 ->whereColumn('itens_venda.id_feira', 'venda_headers.id_feira')
-                ->where('itens_venda.produto_id_api', $livro->produto_id_api);
+                ->where('itens_venda.name', $livro->produto);
         });
 
         // Filtrar por feira, se selecionado
@@ -164,7 +164,7 @@ class CatalogoController extends Controller
 
         // Listar feiras que possuem registro de venda deste livro (para o filtro select)
         $feiraIdsComVendas = DB::table('itens_venda')
-            ->where('produto_id_api', $livro->produto_id_api)
+            ->where('name', $livro->produto)
             ->distinct()
             ->pluck('id_feira');
 
@@ -177,7 +177,7 @@ class CatalogoController extends Controller
                     ->from('itens_venda')
                     ->whereColumn('itens_venda.sell_number', 'venda_headers.sell_number')
                     ->whereColumn('itens_venda.id_feira', 'venda_headers.id_feira')
-                    ->where('itens_venda.produto_id_api', $livro->produto_id_api);
+                    ->where('itens_venda.name', $livro->produto);
             });
         if ($request->filled('feira_id')) {
             $boxesQuery->where('id_feira', $selectedFeiraId);
