@@ -13,10 +13,10 @@ export default function AppLayout({ children, activeItem }: Props) {
     const { flash } = usePage().props as any;
 
     useEffect(() => {
-        if (flash?.success) {
+        if (flash?.success && typeof flash.success === "string") {
             toast.success(flash.success);
         }
-        if (flash?.error) {
+        if (flash?.error && typeof flash.error === "string") {
             toast.error(flash.error);
         }
     }, [flash]);
