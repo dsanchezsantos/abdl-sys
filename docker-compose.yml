@@ -11,7 +11,7 @@ services:
             - ./:/var/www/html
         networks:
             - abdl-sys-network
-            - npm-network
+            - npm_network
         ports:
             - "${APP_PORT:-8890}:80"
             - "${VITE_PORT:-8081}:8081"
@@ -102,7 +102,7 @@ services:
 networks:
     abdl-sys-network:
         driver: bridge
-    npm-network:
+    npm_network:
         external: true
 
 volumes:
