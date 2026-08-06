@@ -54,16 +54,14 @@ class SincronizarFeiraMaestroJob implements ShouldQueue
 
             // 2. Ajuste Dinâmico (Dynamic Pacing)
             $perPage = 100;
-            if ($duration < 500) {
-                $perPage = 500;
-            } elseif ($duration > 2000) {
+            if ($duration > 2000) {
+                // Se a rede for lenta, reduzimos para 50 para evitar timeouts
                 $perPage = 50;
             }
 
-            // Recalcular páginas totais com o novo perPage (Evitar divisão por zero)
+            // Recalcular páginas totais com o novo perPage
             $perPage = max(10, $perPage); 
-            $page1Data = $page1['data'] ?? [];
-            $totalPages = ceil(($totalItems - count($page1Data)) / $perPage);
+            $totalPages = ceil($totalItems / $perPage);
             $totalPages = max(0, $totalPages);
 
             // APLICAÇÃO DE LIMITE DE TESTE (via .env)
