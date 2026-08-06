@@ -1,5 +1,5 @@
 import AppLayout from '@/Layouts/AppLayout';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
 type Relatorio = {
@@ -19,19 +19,32 @@ type Feira = {
 };
 
 type Props = {
-    relatorios: Relatorio[];
+    relatorios: {
+        data: Relatorio[];
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+        from: number;
+        to: number;
+        links: Array<{ url: string | null; label: string; active: boolean }>;
+    };
     feiras: Feira[];
+    filters: {
+        feira_id?: string;
+    };
 };
 
 const TIPOS_RELATORIO = [
-    { id: 'cartao', label: 'Transações por Cartão (Vouchers)' },
-    { id: 'vendas', label: 'Vendas Agrupadas (Por NF/Caixa)' },
+    { id: 'cartao', label: 'Transações por Cartão' },
+    { id: 'vendas', label: 'Vendas Agrupadas' },
     { id: 'editoras', label: 'Consolidado por Editora / Representante' },
 ];
 
-export default function Index({ relatorios, feiras }: Props) {
+export default function Index({ relatorios, feiras, filters }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
+    const [filterFeiraId, setFilterFeiraId] = useState(filters?.feira_id || '');
 
     const { data, setData, post, processing } = useForm({
         id_feira: feiras.length > 0 ? feiras[0].id : '',
@@ -39,7 +52,7 @@ export default function Index({ relatorios, feiras }: Props) {
     });
 
     // Verifica se existe algum relatório em processamento ou na fila
-    const anyProcessing = relatorios.some(r => r.status === 'processando' || r.status === 'fila');
+    const anyProcessing = relatorios.data.some(r => r.status === 'processando' || r.status === 'fila');
 
     // Monitoramento por Polling (Efeito Reativo)
     useEffect(() => {
@@ -52,7 +65,7 @@ export default function Index({ relatorios, feiras }: Props) {
                     only: ['relatorios'],
                     onSuccess: (page: any) => {
                         // Se não houver mais nada processando, paramos o polling
-                        const stillProcessing = page.props.relatorios.some((r: any) => r.status === 'processando' || r.status === 'fila');
+                        const stillProcessing = page.props.relatorios.data.some((r: any) => r.status === 'processando' || r.status === 'fila');
                         if (!stillProcessing) {
                             setIsGenerating(false);
                             clearInterval(interval);
@@ -68,6 +81,15 @@ export default function Index({ relatorios, feiras }: Props) {
             if (interval) clearInterval(interval);
         };
     }, [anyProcessing]);
+
+    const handleFilterFeiraChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const val = e.target.value;
+        setFilterFeiraId(val);
+        router.get(route('relatorios.index'), { feira_id: val }, {
+            preserveState: true,
+            replace: true
+        });
+    };
 
     const handleGenerate = (e: React.FormEvent) => {
         e.preventDefault();
@@ -100,24 +122,6 @@ export default function Index({ relatorios, feiras }: Props) {
             <header className={`flex justify-between items-center px-8 py-4 sticky top-0 z-30 bg-surface/80 backdrop-blur-xl transition-all ${isGenerating ? 'mt-0' : ''}`}>
                 <div className="flex items-center gap-6">
                     <h1 className="text-on-surface font-extrabold text-xl font-headline uppercase tracking-tight">Centro de Relatórios</h1>
-                    <div className="relative">
-                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
-                        <input
-                            className="bg-surface-container-low border-none rounded-full py-2 pl-10 pr-4 text-sm w-64 focus:ring-2 focus:ring-primary/20 placeholder:text-outline-variant"
-                            placeholder="Pesquisar relatórios..." 
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                </div>
-                <div className="flex items-center gap-4">
-                    <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-all duration-200">
-                        <span className="material-symbols-outlined">notifications</span>
-                    </button>
-                    <button className="bg-primary text-on-primary px-5 py-2 rounded-lg font-headline font-semibold flex items-center gap-2 hover:bg-primary-container transition-colors shadow-sm active:scale-95">
-                        <span className="material-symbols-outlined text-[20px]">sync</span>Sincronizar
-                    </button>
                 </div>
             </header>
 
@@ -187,14 +191,27 @@ export default function Index({ relatorios, feiras }: Props) {
 
                     {/* Table Section */}
                     <section className="col-span-12 lg:col-span-8 flex flex-col gap-6">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between flex-wrap gap-4">
                             <div className="flex items-center gap-3">
                                 <h3 className="text-2xl font-bold font-headline">Os Meus Relatórios</h3>
-                                <span className="bg-surface-container-highest text-primary text-xs font-bold px-2 py-0.5 rounded-full">{relatorios.length} Totais</span>
+                                <span className="bg-surface-container-highest text-primary text-xs font-bold px-2 py-0.5 rounded-full">{relatorios.total} Totais</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <label className="text-xs font-bold text-primary uppercase tracking-wider">Filtrar Feira:</label>
+                                <select 
+                                    value={filterFeiraId}
+                                    onChange={handleFilterFeiraChange}
+                                    className="bg-surface-container-lowest border border-outline-variant/30 rounded-lg py-1.5 text-xs text-on-surface focus:border-primary/50 focus:ring-0 transition-all cursor-pointer font-body"
+                                >
+                                    <option value="">Todas as Feiras</option>
+                                    {feiras.map(f => (
+                                        <option key={f.id} value={f.id}>{f.nome}</option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
 
-                        {relatorios.length > 0 ? (
+                        {relatorios.data && relatorios.data.length > 0 ? (
                             <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/10 overflow-hidden">
                                 <table className="w-full text-left border-collapse">
                                     <thead>
@@ -206,7 +223,7 @@ export default function Index({ relatorios, feiras }: Props) {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-outline-variant/10">
-                                        {relatorios.map((rel) => (
+                                        {relatorios.data.map((rel) => (
                                             <tr key={rel.id} className="hover:bg-surface-container-low transition-colors group">
                                                 <td className="px-6 py-5">
                                                     <div className={`flex flex-col ${rel.status === 'processando' || rel.status === 'fila' ? 'opacity-60' : ''}`}>
@@ -254,9 +271,47 @@ export default function Index({ relatorios, feiras }: Props) {
                                         ))}
                                     </tbody>
                                 </table>
-                                <div className="bg-surface-container-low/30 p-4 text-center border-t border-outline-variant/10">
-                                    <span className="text-xs text-outline font-medium">Exibindo os últimos relatórios gerados.</span>
-                                </div>
+                                {relatorios.links && relatorios.links.length > 3 && (
+                                     <div className="px-6 py-4 border-t border-outline-variant/10 bg-surface-container-low/30 flex items-center justify-between text-[10px] font-bold text-primary/60 uppercase tracking-widest">
+                                         <span>
+                                             Exibindo {relatorios.from || 0}-{relatorios.to || 0} de {relatorios.total} relatórios
+                                         </span>
+                                         <div className="flex items-center gap-1">
+                                             {relatorios.links.map((link, idx) => {
+                                                 if (link.label.includes('Previous')) {
+                                                     return (
+                                                         <Link
+                                                             key={idx}
+                                                             href={link.url || '#'}
+                                                             className={`p-1 rounded border border-slate-200 text-primary transition-all active:scale-95 flex items-center justify-center ${!link.url ? 'opacity-40 cursor-default pointer-events-none' : 'hover:bg-white'}`}
+                                                         >
+                                                             <span className="material-symbols-outlined text-[14px]">chevron_left</span>
+                                                         </Link>
+                                                     );
+                                                 }
+                                                 if (link.label.includes('Next')) {
+                                                     return (
+                                                         <Link
+                                                             key={idx}
+                                                             href={link.url || '#'}
+                                                             className={`p-1 rounded border border-slate-200 text-primary transition-all active:scale-95 flex items-center justify-center ${!link.url ? 'opacity-40 cursor-default pointer-events-none' : 'hover:bg-white'}`}
+                                                         >
+                                                             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+                                                         </Link>
+                                                     );
+                                                 }
+                                                 return (
+                                                     <Link
+                                                         key={idx}
+                                                         href={link.url || '#'}
+                                                         className={`px-2.5 py-1 rounded border transition-all active:scale-95 ${link.active ? 'bg-primary text-white border-primary shadow' : 'bg-white text-primary border-slate-200 hover:bg-slate-50'}`}
+                                                         dangerouslySetInnerHTML={{ __html: link.label }}
+                                                     />
+                                                 );
+                                             })}
+                                         </div>
+                                     </div>
+                                 )}
                             </div>
                         ) : (
                             <div className="bg-surface-container-lowest border-2 border-dashed border-outline-variant/20 rounded-2xl p-20 flex flex-col items-center justify-center text-center">

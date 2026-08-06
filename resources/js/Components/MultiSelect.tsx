@@ -10,9 +10,12 @@ type Props = {
     selected: string[];
     onChange: (selected: string[]) => void;
     placeholder?: string;
+    allowCreate?: boolean;
+    single?: boolean;
+    openUpwards?: boolean;
 };
 
-export default function MultiSelect({ options, selected, onChange, placeholder = 'Selecione...' }: Props) {
+export default function MultiSelect({ options, selected, onChange, placeholder = 'Selecione...', allowCreate = false, single = false, openUpwards = false }: Props) {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState('');
     const containerRef = useRef<HTMLDivElement>(null);
@@ -29,10 +32,19 @@ export default function MultiSelect({ options, selected, onChange, placeholder =
     }, []);
 
     const toggleOption = (value: string) => {
-        if (selected.includes(value)) {
-            onChange(selected.filter(item => item !== value));
+        if (single) {
+            if (selected.includes(value)) {
+                onChange([]);
+            } else {
+                onChange([value]);
+                setIsOpen(false);
+            }
         } else {
-            onChange([...selected, value]);
+            if (selected.includes(value)) {
+                onChange(selected.filter(item => item !== value));
+            } else {
+                onChange([...selected, value]);
+            }
         }
     };
 
@@ -96,7 +108,11 @@ export default function MultiSelect({ options, selected, onChange, placeholder =
 
             {/* Dropdown Menu */}
             {isOpen && (
-                <div className="absolute left-0 right-0 mt-2 bg-white border border-slate-100 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150 flex flex-col max-h-64">
+                <div className={`absolute left-0 right-0 bg-white border border-slate-100 rounded-xl shadow-xl z-50 overflow-hidden duration-150 flex flex-col max-h-64 ${
+                    openUpwards 
+                        ? 'bottom-full mb-2 animate-in fade-in slide-in-from-bottom-2' 
+                        : 'mt-2 animate-in fade-in slide-in-from-top-2'
+                }`}>
                     {/* Search Input */}
                     <div className="p-2 border-b border-slate-100 bg-slate-50/50 flex gap-2 items-center">
                         <div className="relative flex-1">
@@ -113,13 +129,28 @@ export default function MultiSelect({ options, selected, onChange, placeholder =
                     </div>
 
                     {/* Bulk Selection Actions */}
-                    <div className="px-3 py-2 border-b border-slate-50 bg-slate-50/20 flex items-center justify-between text-[10px] font-extrabold text-primary/60 uppercase tracking-wider">
-                        <button type="button" onClick={handleSelectAll} className="hover:text-primary transition-colors">Selecionar Todos</button>
-                        <button type="button" onClick={handleClearAll} className="hover:text-primary transition-colors text-right">Limpar</button>
-                    </div>
+                    {!single && (
+                        <div className="px-3 py-2 border-b border-slate-50 bg-slate-50/20 flex items-center justify-between text-[10px] font-extrabold text-primary/60 uppercase tracking-wider">
+                            <button type="button" onClick={handleSelectAll} className="hover:text-primary transition-colors">Selecionar Todos</button>
+                            <button type="button" onClick={handleClearAll} className="hover:text-primary transition-colors text-right">Limpar</button>
+                        </div>
+                    )}
 
                     {/* Options List */}
                     <div className="overflow-y-auto divide-y divide-slate-50 flex-1">
+                        {allowCreate && search.trim() !== '' && !options.some(opt => opt.label.toLowerCase() === search.toLowerCase().trim()) && (
+                            <div
+                                onClick={() => {
+                                    const newValue = search.trim();
+                                    toggleOption(newValue);
+                                    setSearch('');
+                                }}
+                                className="px-4 py-2 hover:bg-slate-50 text-primary font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+                            >
+                                <span className="material-symbols-outlined text-[16px]">add</span>
+                                Criar "{search.trim()}"
+                            </div>
+                        )}
                         {filteredOptions.length > 0 ? (
                             filteredOptions.map((opt) => {
                                 const isSelected = selected.includes(opt.value);

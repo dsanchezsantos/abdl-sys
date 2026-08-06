@@ -1,5 +1,5 @@
 import AppLayout from '@/Layouts/AppLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 
 type Cartao = {
@@ -60,10 +60,77 @@ type Props = {
         to: number;
         links: Array<{ url: string | null; label: string; active: boolean }>;
     };
+    filters: {
+        min_value?: string;
+        max_value?: string;
+        start_date?: string;
+        end_date?: string;
+        sale_type?: string;
+        min_items?: string;
+        max_items?: string;
+        box?: string;
+    };
+    boxes: string[];
 };
 
-export default function Show({ cartao, estatisticas, vendas }: Props) {
+export default function Show({ cartao, estatisticas, vendas, filters, boxes }: Props) {
     const [selectedVenda, setSelectedVenda] = useState<Venda | null>(null);
+
+    // Estados para filtros
+    const [minValue, setMinValue] = useState(filters.min_value || '');
+    const [maxValue, setMaxValue] = useState(filters.max_value || '');
+    const [startDate, setStartDate] = useState(filters.start_date || '');
+    const [endDate, setEndDate] = useState(filters.end_date || '');
+    const [saleType, setSaleType] = useState(filters.sale_type || '');
+    const [minItems, setMinItems] = useState(filters.min_items || '');
+    const [maxItems, setMaxItems] = useState(filters.max_items || '');
+    const [box, setBox] = useState(filters.box || '');
+
+    const applyFilters = (newFilters: any) => {
+        const cleaned = Object.keys(newFilters).reduce((acc: any, key) => {
+            if (newFilters[key] !== undefined && newFilters[key] !== null && newFilters[key] !== "") {
+                acc[key] = newFilters[key];
+            }
+            return acc;
+        }, {});
+
+        router.get(route('cartoes.show', cartao.id), cleaned, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true
+        });
+    };
+
+    const handleSearchFilters = (e: React.FormEvent) => {
+        e.preventDefault();
+        applyFilters({
+            min_value: minValue,
+            max_value: maxValue,
+            start_date: startDate,
+            end_date: endDate,
+            sale_type: saleType,
+            min_items: minItems,
+            max_items: maxItems,
+            box: box
+        });
+    };
+
+    const handleClearFilters = () => {
+        setMinValue('');
+        setMaxValue('');
+        setStartDate('');
+        setEndDate('');
+        setSaleType('');
+        setMinItems('');
+        setMaxItems('');
+        setBox('');
+        
+        router.get(route('cartoes.show', cartao.id), {}, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true
+        });
+    };
 
     const formatCurrency = (value: string | number) => {
         const val = typeof value === 'string' ? parseFloat(value) : value;
@@ -184,10 +251,141 @@ export default function Show({ cartao, estatisticas, vendas }: Props) {
                 </div>
 
                 {/* Histórico de Compras */}
-                <div className="space-y-4">
+                <div className="space-y-4 font-manrope">
                     <div>
                         <h3 className="text-lg font-extrabold text-primary">Histórico de Compras</h3>
                         <p className="text-xs text-primary/60">Lista de todas as vendas que contêm transações pagas com este cartão.</p>
+                    </div>
+
+                    {/* Painel de Filtros */}
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-primary/5">
+                        <form onSubmit={handleSearchFilters} className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                {/* Método de Pagamento */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest block mb-1">Método de Venda</label>
+                                    <select
+                                        value={saleType}
+                                        onChange={(e) => setSaleType(e.target.value)}
+                                        className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs w-full transition-all text-primary font-semibold"
+                                    >
+                                        <option value="">Todos os métodos</option>
+                                        <option value="-1">Pagamento Único</option>
+                                        <option value="1">Múltiplos Pagamentos</option>
+                                    </select>
+                                </div>
+
+                                {/* Caixa / PDV */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest block mb-1">Caixa / PDV</label>
+                                    <select
+                                        value={box}
+                                        onChange={(e) => setBox(e.target.value)}
+                                        className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs w-full transition-all text-primary font-semibold"
+                                    >
+                                        <option value="">Todos os caixas</option>
+                                        {(boxes || []).map((b) => (
+                                            <option key={b} value={b}>{b}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Qtd Mínima de Itens */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest block mb-1">Qtd Mínima Livros</label>
+                                    <input
+                                        type="number"
+                                        value={minItems}
+                                        onChange={(e) => setMinItems(e.target.value)}
+                                        placeholder="Mínimo"
+                                        className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs w-full transition-all text-primary font-semibold"
+                                    />
+                                </div>
+
+                                {/* Qtd Máxima de Itens */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest block mb-1">Qtd Máxima Livros</label>
+                                    <input
+                                        type="number"
+                                        value={maxItems}
+                                        onChange={(e) => setMaxItems(e.target.value)}
+                                        placeholder="Máximo"
+                                        className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs w-full transition-all text-primary font-semibold"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                {/* Data Inicial */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest block mb-1">Data Inicial</label>
+                                    <input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs w-full transition-all text-primary font-semibold"
+                                    />
+                                </div>
+
+                                {/* Data Final */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest block mb-1">Data Final</label>
+                                    <input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs w-full transition-all text-primary font-semibold"
+                                    />
+                                </div>
+
+                                {/* Valor Mínimo */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest block mb-1">Valor Mínimo</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={minValue}
+                                        onChange={(e) => setMinValue(e.target.value)}
+                                        placeholder="R$ 0,00"
+                                        className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs w-full transition-all text-primary font-semibold"
+                                    />
+                                </div>
+
+                                {/* Valor Máximo */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest block mb-1">Valor Máximo</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={maxValue}
+                                        onChange={(e) => setMaxValue(e.target.value)}
+                                        placeholder="R$ 1.000,00"
+                                        className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs w-full transition-all text-primary font-semibold"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Botões de Ação */}
+                            <div className="flex justify-end items-center gap-3 pt-2">
+                                {(minValue || maxValue || startDate || endDate || saleType || minItems || maxItems || box) && (
+                                    <button
+                                        type="button"
+                                        onClick={handleClearFilters}
+                                        className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-error bg-error/5 hover:bg-error/10 rounded-lg transition-all active:scale-95 shadow-sm"
+                                    >
+                                        <span className="material-symbols-outlined text-[16px]">clear_all</span>
+                                        Limpar Filtros
+                                    </button>
+                                )}
+                                <button
+                                    type="submit"
+                                    className="flex items-center gap-1.5 px-5 py-2 text-xs font-extrabold text-white bg-primary hover:bg-primary/90 rounded-lg transition-all active:scale-95 shadow-md shadow-primary/10"
+                                >
+                                    <span className="material-symbols-outlined text-[16px]">filter_alt</span>
+                                    Aplicar Filtros
+                                </button>
+                            </div>
+                        </form>
                     </div>
 
                     <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-primary/5">

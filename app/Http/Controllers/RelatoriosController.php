@@ -8,17 +8,22 @@ use Inertia\Inertia;
 
 class RelatoriosController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         // Buscamos as feiras para o seletor do formulário
         $feiras = \App\Models\Feira::orderBy('created_at', 'desc')->get(['id', 'nome']);
 
-        // Buscamos os últimos 50 relatórios gerados
-        $relatorios = Relatorio::with('feira')
-            ->orderBy('created_at', 'desc')
-            ->limit(50)
-            ->get()
-            ->map(function ($rel) {
+        $query = Relatorio::with('feira');
+
+        // Filtro por feira
+        if ($request->filled('feira_id')) {
+            $query->where('id_feira', $request->input('feira_id'));
+        }
+
+        // Paginação limitada a 5 por página
+        $relatorios = $query->orderBy('created_at', 'desc')
+            ->paginate(5)
+            ->through(function ($rel) {
                 return [
                     'id' => $rel->id,
                     'nome' => $rel->tipo . ' - ' . ($rel->feira->nome ?? 'N/A'),
@@ -29,11 +34,15 @@ class RelatoriosController extends Controller
                     'feira_nome' => $rel->feira->nome ?? 'N/A',
                     'download_url' => $rel->urlDownloadSegura(),
                 ];
-            });
+            })
+            ->withQueryString();
 
         return Inertia::render('Relatorios/Index', [
             'relatorios' => $relatorios,
-            'feiras' => $feiras
+            'feiras' => $feiras,
+            'filters' => [
+                'feira_id' => $request->input('feira_id', ''),
+            ]
         ]);
     }
 

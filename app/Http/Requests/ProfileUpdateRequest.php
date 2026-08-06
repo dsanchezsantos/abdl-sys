@@ -25,6 +25,25 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            'cpf' => [
+                'required',
+                'string',
+                'size:11',
+                Rule::unique(User::class)->ignore($this->user()->id),
+            ],
+            'apelido' => ['required', 'string', 'max:255'],
         ];
+    }
+
+    /**
+     * Prepara os dados para validação.
+     */
+    protected function prepareForValidation()
+    {
+        if ($this->has('cpf')) {
+            $this->merge([
+                'cpf' => preg_replace('/[^0-9]/', '', $this->cpf)
+            ]);
+        }
     }
 }

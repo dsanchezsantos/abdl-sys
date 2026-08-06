@@ -23,15 +23,6 @@ export default function Dashboard({ feiras }: { feiras: any[] }) {
                         Gestão de Feiras
                     </h2>
                 </div>
-                <div className="flex items-center space-x-4">
-                    <div className="text-right mr-4">
-                        <p className="text-sm font-bold text-primary">{user.name}</p>
-                        <p className="text-xs text-primary/60">{user.email}</p>
-                    </div>
-                    <button className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5 text-primary transition hover:bg-primary/10">
-                        <span className="material-symbols-outlined">notifications</span>
-                    </button>
-                </div>
             </header>
 
             <main className="p-8">

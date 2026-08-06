@@ -1,10 +1,11 @@
 import { Link, usePage } from "@inertiajs/react";
 
-type SidebarKey = "dashboard" | "feiras" | "catalogo" | "cartoes" | "auditoria" | "relatorios" | "perfil";
+type SidebarKey = "dashboard" | "feiras" | "catalogo" | "cartoes" | "auditoria" | "relatorios" | "perfil" | "usuarios";
 
 type AuthUser = {
     name: string;
     email: string;
+    apelido?: string | null;
 };
 
 type AppSidebarProps = {
@@ -46,6 +47,11 @@ export default function AppSidebar({ activeItem = "dashboard" }: AppSidebarProps
                     <span className="material-symbols-outlined mr-3">analytics</span>
                     <span>Relatórios</span>
                 </Link>
+
+                <Link className={itemClass("usuarios")} href={route("usuarios.index")}>
+                    <span className="material-symbols-outlined mr-3">group</span>
+                    <span>Usuários</span>
+                </Link>
             </div>
 
             <div className="p-6 mt-auto">
@@ -56,8 +62,7 @@ export default function AppSidebar({ activeItem = "dashboard" }: AppSidebarProps
                         src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=00246a&color=fff`}
                     />
                     <div className="overflow-hidden">
-                        <p className="text-white text-sm font-bold truncate">{user.name}</p>
-                        <p className="text-slate-400 text-xs truncate">Acesso Nível 5</p>
+                        <p className="text-white text-sm font-bold truncate">{user.apelido || user.name}</p>
                     </div>
                 </Link>
             </div>

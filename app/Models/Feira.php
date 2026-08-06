@@ -60,4 +60,9 @@ class Feira extends Model
     {
         return $this->hasMany(Relatorio::class, "id_feira");
     }
+
+    public function editorasRepresentantes(): HasMany
+    {
+        return $this->hasMany(EditoraRepresentante::class, "id_feira");
+    }
 }

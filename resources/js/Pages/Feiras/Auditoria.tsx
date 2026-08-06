@@ -1,17 +1,96 @@
 import AppLayout from "@/Layouts/AppLayout";
 import { Head, Link, router, usePage } from "@inertiajs/react";
 import { useEffect, useState } from "react";
+import MultiSelect from "@/Components/MultiSelect";
+
+interface EditoraRep {
+    id: number;
+    editora: string;
+    representante: string;
+}
 
 interface Props {
     feira: any;
     estatisticas?: any;
     ultimas_vendas?: any[];
+    editoras_representantes: EditoraRep[];
+    representantes_unicos: string[];
 }
 
-export default function Auditoria({ feira, estatisticas, ultimas_vendas }: Props) {
+export default function Auditoria({ feira, estatisticas, ultimas_vendas, editoras_representantes, representantes_unicos }: Props) {
     const { props } = usePage();
     const [isSyncing, setIsSyncing] = useState(feira.is_sincronizando);
     const [selectedVenda, setSelectedVenda] = useState<any | null>(null);
+    const [exportOpen, setExportOpen] = useState(false);
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const [editorasSearch, setEditorasSearch] = useState('');
+    const [manualEditora, setManualEditora] = useState('');
+    const [manualRepresentante, setManualRepresentante] = useState('');
+    const [importFile, setImportFile] = useState<File | null>(null);
+    const [isImporting, setIsImporting] = useState(false);
+    const [isSavingManual, setIsSavingManual] = useState(false);
+    const [importError, setImportError] = useState('');
+
+    const handleManualSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSavingManual(true);
+        router.post(route('feiras.editoras.store', feira.id), {
+            editora: manualEditora,
+            representante: manualRepresentante
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setManualEditora('');
+                setManualRepresentante('');
+                setIsSavingManual(false);
+            },
+            onError: () => {
+                setIsSavingManual(false);
+            }
+        });
+    };
+
+    const handleDeleteEditoraRep = (id: number) => {
+        if (confirm('Tem certeza que deseja remover esta associação?')) {
+            router.delete(route('feiras.editoras.destroy', { feira: feira.id, id }), {
+                preserveScroll: true
+            });
+        }
+    };
+
+    const handleImport = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!importFile) return;
+
+        setIsImporting(true);
+        setImportError('');
+
+        const formData = new FormData();
+        formData.append('file', importFile);
+
+        router.post(route('feiras.editoras.import', feira.id), formData as any, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setImportFile(null);
+                setIsImporting(false);
+            },
+            onError: (err) => {
+                setImportError(err.file || 'Erro ao importar arquivo.');
+                setIsImporting(false);
+            }
+        });
+    };
+
+    const filteredEditorasReps = (editoras_representantes || []).filter(er => 
+        er.editora.toLowerCase().includes(editorasSearch.toLowerCase()) ||
+        er.representante.toLowerCase().includes(editorasSearch.toLowerCase())
+    );
+
+    const itemsPerPage = 10;
+    const totalPages = Math.ceil(filteredEditorasReps.length / itemsPerPage) || 1;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedEditorasReps = filteredEditorasReps.slice(startIndex, startIndex + itemsPerPage);
 
     // Carregamento inicial das estatísticas e vendas (Lazy load automático)
     useEffect(() => {
@@ -107,6 +186,58 @@ export default function Auditoria({ feira, estatisticas, ultimas_vendas }: Props
                     </h1>
                 </div>
                 <div className="flex items-center gap-4">
+                    {/* Botão de Exportação Excel */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setExportOpen(!exportOpen)}
+                            disabled={isSyncing}
+                            className={`flex items-center gap-2 px-5 py-2.5 bg-white border border-primary/20 text-primary rounded-lg font-bold text-sm hover:bg-primary/5 transition-all active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                            <span className="material-symbols-outlined text-sm">download</span>
+                            Exportar (.xlsx)
+                            <span className="material-symbols-outlined text-sm transition-transform duration-200" style={{ transform: exportOpen ? 'rotate(180deg)' : 'none' }}>keyboard_arrow_down</span>
+                        </button>
+ 
+                        {exportOpen && (
+                            <>
+                                {/* Click outside handler backdrop */}
+                                <div className="fixed inset-0 z-40" onClick={() => setExportOpen(false)} />
+                                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-primary/5 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                                    <a
+                                        href={route('feiras.export.livros', feira.id)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={() => setExportOpen(false)}
+                                        className="flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-primary/80 hover:bg-primary/5 hover:text-primary transition-colors"
+                                    >
+                                        <span className="material-symbols-outlined text-lg">menu_book</span>
+                                        Catálogo de Livros
+                                    </a>
+                                    <a
+                                        href={route('feiras.export.cartoes', feira.id)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={() => setExportOpen(false)}
+                                        className="flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-primary/80 hover:bg-primary/5 hover:text-primary transition-colors"
+                                    >
+                                        <span className="material-symbols-outlined text-lg">credit_card</span>
+                                        Lista de Cartões
+                                    </a>
+                                    <a
+                                        href={route('feiras.export.vendas', feira.id)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={() => setExportOpen(false)}
+                                        className="flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-primary/80 hover:bg-primary/5 hover:text-primary transition-colors"
+                                    >
+                                        <span className="material-symbols-outlined text-lg">receipt_long</span>
+                                        Vendas e Transações
+                                    </a>
+                                </div>
+                            </>
+                        )}
+                    </div>
+ 
                     <button 
                         onClick={handleSync}
                         disabled={isSyncing}
@@ -394,6 +525,162 @@ export default function Auditoria({ feira, estatisticas, ultimas_vendas }: Props
                     </div>
                 )}
             </div>
+                {/* Gestão de Editoras e Representantes */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8 mb-24">
+                    {/* Painel de Cadastro e Importação */}
+                    <div className="lg:col-span-4 bg-white p-8 rounded-2xl shadow-sm border border-primary/5 flex flex-col gap-6 font-manrope">
+                        <div>
+                            <h4 className="text-lg font-bold text-primary">Importar / Cadastrar</h4>
+                            <p className="text-xs text-primary/60 mt-1">Defina as editoras e representantes da feira para parametrizar o catálogo.</p>
+                        </div>
+
+                        {/* Importação CSV/XLSX */}
+                        <div className="border-t border-slate-100 pt-6">
+                            <span className="text-xs font-bold text-primary uppercase tracking-wider block mb-3">Importar Planilha</span>
+                            <form onSubmit={handleImport} className="space-y-3">
+                                <label className="flex flex-col items-center justify-center border-2 border-dashed border-primary/20 hover:border-primary/40 rounded-xl p-4 cursor-pointer hover:bg-primary/5 transition-all text-center">
+                                    <span className="material-symbols-outlined text-primary text-2xl mb-1">upload_file</span>
+                                    <span className="text-xs font-bold text-primary truncate max-w-full px-2">{importFile ? importFile.name : 'Selecionar Arquivo'}</span>
+                                    <span className="text-[10px] text-primary/40 font-semibold mt-0.5">Formatos: .csv ou .xlsx</span>
+                                    <input 
+                                        type="file" 
+                                        accept=".csv,.xlsx,.xls"
+                                        onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                                        className="hidden" 
+                                    />
+                                </label>
+                                {importError && (
+                                    <p className="text-[10px] text-error font-bold">{importError}</p>
+                                )}
+                                <button
+                                    type="submit"
+                                    disabled={!importFile || isImporting}
+                                    className="w-full bg-primary hover:opacity-90 disabled:opacity-50 text-white font-headline font-bold py-2 rounded-lg text-xs shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+                                >
+                                    <span className="material-symbols-outlined text-sm">publish</span>
+                                    {isImporting ? 'Enviando...' : 'Carregar Planilha'}
+                                </button>
+                            </form>
+                        </div>
+
+                        {/* Cadastro Manual */}
+                        <div className="border-t border-slate-100 pt-6">
+                            <span className="text-xs font-bold text-primary uppercase tracking-wider block mb-3">Cadastro Manual</span>
+                            <form onSubmit={handleManualSubmit} className="space-y-3">
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest px-1">Editora</label>
+                                    <input 
+                                        type="text"
+                                        value={manualEditora}
+                                        onChange={(e) => setManualEditora(e.target.value)}
+                                        placeholder="Nome da Editora"
+                                        className="w-full bg-slate-50 border border-slate-200 focus:border-primary/50 focus:ring-0 rounded-lg py-2 px-3 text-xs text-primary font-semibold"
+                                        required
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest px-1">Representante</label>
+                                    <MultiSelect
+                                        options={(representantes_unicos || []).map(rep => ({ value: rep, label: rep }))}
+                                        selected={manualRepresentante ? [manualRepresentante] : []}
+                                        onChange={(selected) => setManualRepresentante(selected[0] || '')}
+                                        placeholder="Selecione ou digite o representante"
+                                        single
+                                        allowCreate
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    disabled={isSavingManual}
+                                    className="w-full bg-gradient-to-br from-primary to-primary-container hover:brightness-110 text-white font-headline font-bold py-2 rounded-lg text-xs shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+                                >
+                                    <span className="material-symbols-outlined text-sm">add</span>
+                                    {isSavingManual ? 'Adicionando...' : 'Adicionar Associação'}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    {/* Listagem de Editoras e Representantes */}
+                    <div className="lg:col-span-8 bg-white p-8 rounded-2xl shadow-sm border border-primary/5 flex flex-col gap-4 font-manrope">
+                        <div className="flex items-center justify-between flex-wrap gap-4">
+                            <div>
+                                <h4 className="text-lg font-bold text-primary">Editoras e Representantes</h4>
+                                <p className="text-xs text-primary/60 mt-1">Lista completa de associações registradas nesta feira.</p>
+                            </div>
+                            <div className="relative w-48">
+                                <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/30 text-sm">search</span>
+                                <input 
+                                    type="text"
+                                    value={editorasSearch}
+                                    onChange={(e) => setEditorasSearch(e.target.value)}
+                                    placeholder="Buscar por editora..."
+                                    className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 focus:border-primary/50 focus:ring-0 rounded-lg text-xs text-primary font-semibold placeholder:text-primary/20"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="border border-slate-100 rounded-xl overflow-hidden mt-2">
+                            <table className="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr className="bg-slate-50/50 border-b border-slate-100 text-primary/50 font-bold uppercase tracking-wider">
+                                        <th className="px-5 py-3">Editora</th>
+                                        <th className="px-5 py-3">Representante</th>
+                                        <th className="px-5 py-3 text-right w-20">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50 font-semibold text-primary/80">
+                                    {paginatedEditorasReps.length > 0 ? (
+                                        paginatedEditorasReps.map((er) => (
+                                            <tr key={er.id} className="hover:bg-slate-50/30">
+                                                <td className="px-5 py-3 text-primary font-bold">{er.editora}</td>
+                                                <td className="px-5 py-3">{er.representante}</td>
+                                                <td className="px-5 py-3 text-right">
+                                                    <button
+                                                        onClick={() => handleDeleteEditoraRep(er.id)}
+                                                        className="p-1 hover:bg-red-50 text-red-500 hover:text-red-700 rounded transition-all"
+                                                        title="Excluir Associação"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={3} className="px-5 py-10 text-center text-primary/40 italic">
+                                                Nenhuma associação cadastrada para esta feira.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Paginação Client-side */}
+                        {filteredEditorasReps.length > itemsPerPage && (
+                            <div className="flex items-center justify-between text-[11px] font-bold text-primary/40 uppercase mt-2">
+                                <span>Exibindo {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredEditorasReps.length)} de {filteredEditorasReps.length} registros</span>
+                                <div className="flex items-center gap-1">
+                                    <button 
+                                        disabled={currentPage === 1}
+                                        onClick={() => setCurrentPage(prev => prev - 1)}
+                                        className="p-1 rounded border border-slate-200 text-primary hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none"
+                                    >
+                                        <span className="material-symbols-outlined text-[14px]">chevron_left</span>
+                                    </button>
+                                    <button 
+                                        disabled={currentPage === totalPages}
+                                        onClick={() => setCurrentPage(prev => prev + 1)}
+                                        className="p-1 rounded border border-slate-200 text-primary hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none"
+                                    >
+                                        <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </main>
 
             {/* Modal de Detalhes da Venda */}

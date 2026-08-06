@@ -7,7 +7,6 @@ type Livro = {
     produto_id_api: number;
     produto: string;
     valor: string;
-    categoria: string | null;
     editora: string;
     representante: string;
 };
@@ -48,6 +47,12 @@ type Venda = {
     pagamentos?: Pagamento[];
 };
 
+type EditoraRep = {
+    id: number;
+    editora: string;
+    representante: string;
+};
+
 type Props = {
     livro: Livro;
     estatisticas_feiras: EstFeira[];
@@ -64,19 +69,122 @@ type Props = {
     feiras: Array<{ id: number; nome: string }>;
     filters: {
         feira_id?: string;
+        min_value?: string;
+        max_value?: string;
+        start_date?: string;
+        end_date?: string;
+        sale_type?: string;
+        min_items?: string;
+        max_items?: string;
+        box?: string;
     };
+    editoras_representantes: EditoraRep[];
+    boxes: string[];
 };
 
-export default function Show({ livro, estatisticas_feiras, vendas, feiras, filters }: Props) {
+export default function Show({ livro, estatisticas_feiras, vendas, feiras, filters, editoras_representantes, boxes }: Props) {
     const [selectedFeiraId, setSelectedFeiraId] = useState(filters.feira_id || '');
     const [selectedVenda, setSelectedVenda] = useState<Venda | null>(null);
 
+    // Estados para filtros
+    const [minValue, setMinValue] = useState(filters.min_value || '');
+    const [maxValue, setMaxValue] = useState(filters.max_value || '');
+    const [startDate, setStartDate] = useState(filters.start_date || '');
+    const [endDate, setEndDate] = useState(filters.end_date || '');
+    const [saleType, setSaleType] = useState(filters.sale_type || '');
+    const [minItems, setMinItems] = useState(filters.min_items || '');
+    const [maxItems, setMaxItems] = useState(filters.max_items || '');
+    const [box, setBox] = useState(filters.box || '');
+
+    // Estados para edição
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editEditora, setEditEditora] = useState(livro.editora || '');
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleEditSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSaving(true);
+        router.patch(route('catalogo.livros.update', livro.id), {
+            editora: editEditora
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setIsEditModalOpen(false);
+                setIsSaving(false);
+            },
+            onError: () => {
+                setIsSaving(false);
+            }
+        });
+    };
+
+    const applyFilters = (newFilters: any) => {
+        const cleaned = Object.keys(newFilters).reduce((acc: any, key) => {
+            if (newFilters[key] !== undefined && newFilters[key] !== null && newFilters[key] !== "") {
+                acc[key] = newFilters[key];
+            }
+            return acc;
+        }, {});
+
+        // Preservar feira_id se selecionado
+        if (selectedFeiraId && !cleaned.hasOwnProperty('feira_id')) {
+            cleaned.feira_id = selectedFeiraId;
+        }
+
+        router.get(route('catalogo.show', livro.id), cleaned, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true
+        });
+    };
+
+    const handleSearchFilters = (e: React.FormEvent) => {
+        e.preventDefault();
+        applyFilters({
+            feira_id: selectedFeiraId,
+            min_value: minValue,
+            max_value: maxValue,
+            start_date: startDate,
+            end_date: endDate,
+            sale_type: saleType,
+            min_items: minItems,
+            max_items: maxItems,
+            box: box
+        });
+    };
+
     const handleFeiraChange = (newFeiraId: string) => {
         setSelectedFeiraId(newFeiraId);
-        router.get(route('catalogo.show', livro.id), {
-            feira_id: newFeiraId
-        }, {
+        applyFilters({
+            feira_id: newFeiraId,
+            min_value: minValue,
+            max_value: maxValue,
+            start_date: startDate,
+            end_date: endDate,
+            sale_type: saleType,
+            min_items: minItems,
+            max_items: maxItems,
+            box: box
+        });
+    };
+
+    const handleClearFilters = () => {
+        setMinValue('');
+        setMaxValue('');
+        setStartDate('');
+        setEndDate('');
+        setSaleType('');
+        setMinItems('');
+        setMaxItems('');
+        setBox('');
+        
+        const cleaned: any = {};
+        if (selectedFeiraId) {
+            cleaned.feira_id = selectedFeiraId;
+        }
+        router.get(route('catalogo.show', livro.id), cleaned, {
             preserveState: true,
+            preserveScroll: true,
             replace: true
         });
     };
@@ -129,31 +237,38 @@ export default function Show({ livro, estatisticas_feiras, vendas, feiras, filte
                             <span className="px-2.5 py-1 bg-primary/10 rounded-lg text-primary text-[10px] font-extrabold uppercase">
                                 ID #{livro.produto_id_api}
                             </span>
-                            <span className="px-2.5 py-1 bg-slate-100 rounded-lg text-slate-600 text-[10px] font-extrabold uppercase">
-                                {livro.categoria || 'Sem Categoria'}
-                            </span>
                         </div>
                         <h2 className="text-2xl font-extrabold text-primary">{livro.produto}</h2>
                         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-semibold text-primary/60">
                             <span className="flex items-center gap-1.5">
                                 <span className="material-symbols-outlined text-[16px]">apartment</span>
-                                Editora: <strong className="text-primary">{livro.editora}</strong>
+                                Editora: <strong className="text-primary">{livro.editora || 'Não Informada'}</strong>
                             </span>
                             <span className="flex items-center gap-1.5">
                                 <span className="material-symbols-outlined text-[16px]">person</span>
-                                Representante: <strong className="text-primary">{livro.representante}</strong>
+                                Representante: <strong className="text-primary">{livro.representante || 'Não Informado'}</strong>
                             </span>
                         </div>
                     </div>
                     
-                    <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl flex items-center gap-3 self-start md:self-center">
-                        <div className="w-10 h-10 rounded-lg bg-primary/5 flex items-center justify-center text-primary">
-                            <span className="material-symbols-outlined">payments</span>
+                    <div className="flex items-center gap-4">
+                        <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl flex items-center gap-3 self-start md:self-center">
+                            <div className="w-10 h-10 rounded-lg bg-primary/5 flex items-center justify-center text-primary">
+                                <span className="material-symbols-outlined">payments</span>
+                            </div>
+                            <div>
+                                <span className="text-[9px] font-bold text-primary/40 uppercase tracking-widest block">Preço Unitário</span>
+                                <span className="text-lg font-extrabold text-primary">{formatCurrency(livro.valor)}</span>
+                            </div>
                         </div>
-                        <div>
-                            <span className="text-[9px] font-bold text-primary/40 uppercase tracking-widest block">Preço Unitário</span>
-                            <span className="text-lg font-extrabold text-primary">{formatCurrency(livro.valor)}</span>
-                        </div>
+
+                        <button 
+                            onClick={() => setIsEditModalOpen(true)}
+                            className="bg-primary/5 hover:bg-primary/10 text-primary p-3 rounded-xl transition-all active:scale-95 flex items-center justify-center self-start md:self-center border border-primary/10"
+                            title="Editar Editora/Representante"
+                        >
+                            <span className="material-symbols-outlined text-[20px]">edit</span>
+                        </button>
                     </div>
                 </div>
 
@@ -204,10 +319,141 @@ export default function Show({ livro, estatisticas_feiras, vendas, feiras, filte
                 </div>
 
                 {/* Histórico de Vendas */}
-                <div className="space-y-4">
+                <div className="space-y-4 font-manrope">
                     <div>
                         <h3 className="text-lg font-extrabold text-primary">Histórico de Vendas</h3>
                         <p className="text-xs text-primary/60">Lista de todas as vendas que possuem este livro no carrinho.</p>
+                    </div>
+
+                    {/* Painel de Filtros */}
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-primary/5">
+                        <form onSubmit={handleSearchFilters} className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                {/* Método de Pagamento */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest block mb-1">Método de Venda</label>
+                                    <select
+                                        value={saleType}
+                                        onChange={(e) => setSaleType(e.target.value)}
+                                        className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs w-full transition-all text-primary font-semibold"
+                                    >
+                                        <option value="">Todos os métodos</option>
+                                        <option value="-1">Pagamento Único</option>
+                                        <option value="1">Múltiplos Pagamentos</option>
+                                    </select>
+                                </div>
+
+                                {/* Caixa / PDV */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest block mb-1">Caixa / PDV</label>
+                                    <select
+                                        value={box}
+                                        onChange={(e) => setBox(e.target.value)}
+                                        className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs w-full transition-all text-primary font-semibold"
+                                    >
+                                        <option value="">Todos os caixas</option>
+                                        {(boxes || []).map((b) => (
+                                            <option key={b} value={b}>{b}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Qtd Mínima de Itens */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest block mb-1">Qtd Mínima Livros</label>
+                                    <input
+                                        type="number"
+                                        value={minItems}
+                                        onChange={(e) => setMinItems(e.target.value)}
+                                        placeholder="Mínimo"
+                                        className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs w-full transition-all text-primary font-semibold"
+                                    />
+                                </div>
+
+                                {/* Qtd Máxima de Itens */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest block mb-1">Qtd Máxima Livros</label>
+                                    <input
+                                        type="number"
+                                        value={maxItems}
+                                        onChange={(e) => setMaxItems(e.target.value)}
+                                        placeholder="Máximo"
+                                        className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs w-full transition-all text-primary font-semibold"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                {/* Data Inicial */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest block mb-1">Data Inicial</label>
+                                    <input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs w-full transition-all text-primary font-semibold"
+                                    />
+                                </div>
+
+                                {/* Data Final */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest block mb-1">Data Final</label>
+                                    <input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs w-full transition-all text-primary font-semibold"
+                                    />
+                                </div>
+
+                                {/* Valor Mínimo */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest block mb-1">Valor Mínimo</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={minValue}
+                                        onChange={(e) => setMinValue(e.target.value)}
+                                        placeholder="R$ 0,00"
+                                        className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs w-full transition-all text-primary font-semibold"
+                                    />
+                                </div>
+
+                                {/* Valor Máximo */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest block mb-1">Valor Máximo</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={maxValue}
+                                        onChange={(e) => setMaxValue(e.target.value)}
+                                        placeholder="R$ 1.000,00"
+                                        className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs w-full transition-all text-primary font-semibold"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Botões de Ação */}
+                            <div className="flex justify-end items-center gap-3 pt-2">
+                                {(minValue || maxValue || startDate || endDate || saleType || minItems || maxItems || box) && (
+                                    <button
+                                        type="button"
+                                        onClick={handleClearFilters}
+                                        className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-error bg-error/5 hover:bg-error/10 rounded-lg transition-all active:scale-95 shadow-sm"
+                                    >
+                                        <span className="material-symbols-outlined text-[16px]">clear_all</span>
+                                        Limpar Filtros
+                                    </button>
+                                )}
+                                <button
+                                    type="submit"
+                                    className="flex items-center gap-1.5 px-5 py-2 text-xs font-extrabold text-white bg-primary hover:bg-primary/90 rounded-lg transition-all active:scale-95 shadow-md shadow-primary/10"
+                                >
+                                    <span className="material-symbols-outlined text-[16px]">filter_alt</span>
+                                    Aplicar Filtros
+                                </button>
+                            </div>
+                        </form>
                     </div>
 
                     <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-primary/5">
@@ -479,6 +725,64 @@ export default function Show({ livro, estatisticas_feiras, vendas, feiras, filte
                                 Fechar Detalhes
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+            {/* Modal de Edição */}
+            {isEditModalOpen && (
+                <div className="fixed inset-0 bg-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-primary/5 p-6 animate-in zoom-in-95 duration-200 font-manrope">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                            <h3 className="text-lg font-extrabold text-primary flex items-center gap-1.5">
+                                <span className="material-symbols-outlined">edit_note</span>
+                                Editar Livro
+                            </h3>
+                            <button 
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="p-1 hover:bg-slate-100 rounded text-primary/60 flex items-center justify-center"
+                            >
+                                <span className="material-symbols-outlined text-[20px]">close</span>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleEditSubmit} className="space-y-4">
+                            <div className="flex flex-col gap-1">
+                                <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest px-1">Editora</label>
+                                <input 
+                                    type="text"
+                                    list="editoras-list"
+                                    value={editEditora}
+                                    onChange={(e) => setEditEditora(e.target.value)}
+                                    placeholder="Escolha ou digite a editora"
+                                    className="w-full bg-slate-50 border border-slate-200 focus:border-primary/50 focus:ring-0 rounded-lg py-2 px-3 text-xs text-primary font-semibold"
+                                    required
+                                />
+                                <datalist id="editoras-list">
+                                    {Array.from(new Set(editoras_representantes.map(er => er.editora))).map(ed => (
+                                        <option key={ed} value={ed} />
+                                    ))}
+                                </datalist>
+                            </div>
+
+
+
+                            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 mt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditModalOpen(false)}
+                                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSaving}
+                                    className="px-5 py-2 bg-primary hover:opacity-95 text-white text-xs font-bold rounded-lg shadow-md transition-all"
+                                >
+                                    {isSaving ? 'Salvando...' : 'Salvar Alterações'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

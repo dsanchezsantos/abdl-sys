@@ -5,16 +5,11 @@ import DeleteUserForm from './Partials/DeleteUserForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
 
-type AuthUser = {
-    name: string;
-    email: string;
-};
-
 export default function Edit({
     mustVerifyEmail,
     status,
 }: PageProps<{ mustVerifyEmail: boolean; status?: string }>) {
-    const user = usePage().props.auth.user as AuthUser;
+    const user = usePage().props.auth.user;
 
     return (
         <>
@@ -43,12 +38,6 @@ export default function Edit({
                             Perfil do Utilizador
                         </h1>
                         <div className="flex items-center gap-4">
-                            <Link
-                                href={route('dashboard')}
-                                className="rounded-lg px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary/5"
-                            >
-                                Dashboard
-                            </Link>
                             <Link
                                 href={route('logout')}
                                 method="post"

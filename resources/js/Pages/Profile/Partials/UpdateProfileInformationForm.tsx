@@ -12,14 +12,26 @@ export default function UpdateProfileInformation({
     status?: string;
     className?: string;
 }) {
-    const user = usePage().props.auth.user;
+    const user = usePage().props.auth.user as any;
     const [confirmEmail, setConfirmEmail] = useState(user.email);
     const [confirmEmailError, setConfirmEmailError] = useState('');
-
+ 
+    const formatCPF = (val: string) => {
+        let clean = val.replace(/\D/g, '');
+        if (clean.length > 11) clean = clean.slice(0, 11);
+        let formatted = clean;
+        if (clean.length > 3) formatted = clean.slice(0, 3) + '.' + clean.slice(3);
+        if (clean.length > 6) formatted = formatted.slice(0, 7) + '.' + formatted.slice(7);
+        if (clean.length > 9) formatted = formatted.slice(0, 11) + '-' + formatted.slice(11);
+        return formatted;
+    };
+ 
     const { data, setData, patch, errors, processing, recentlySuccessful } =
         useForm({
             name: user.name,
             email: user.email,
+            cpf: formatCPF(user.cpf || ''),
+            apelido: user.apelido || '',
         });
 
     const submit: FormEventHandler = (e) => {
@@ -48,22 +60,8 @@ export default function UpdateProfileInformation({
                     </h3>
                 </div>
 
-                <div className="mb-10 flex flex-col items-center gap-8 md:flex-row md:items-start">
-                    <div className="relative">
-                        <div className="h-28 w-28 overflow-hidden rounded-full ring-4 ring-secondary/15 ring-offset-2 ring-offset-white">
-                            <div className="flex h-full w-full items-center justify-center bg-base text-primary/50">
-                                <span className="material-symbols-outlined text-5xl">person</span>
-                            </div>
-                        </div>
-                        <button
-                            type="button"
-                            className="absolute bottom-0 right-0 rounded-full bg-secondary p-2 text-white shadow"
-                        >
-                            <span className="material-symbols-outlined text-sm">photo_camera</span>
-                        </button>
-                    </div>
-
-                    <div className="w-full space-y-4">
+                <div className="mb-8 flex flex-col gap-6">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div>
                             <label
                                 htmlFor="name"
@@ -81,8 +79,53 @@ export default function UpdateProfileInformation({
                             />
                             <InputError className="mt-2" message={errors.name} />
                         </div>
-
-                        <div className="flex items-center gap-2 rounded-lg border border-secondary/25 bg-secondary/10 p-3">
+ 
+                        <div>
+                            <label
+                                htmlFor="apelido"
+                                className="mb-1.5 ml-1 block text-[11px] font-bold uppercase tracking-wider text-primary/60"
+                            >
+                                Apelido no Sistema
+                            </label>
+                            <input
+                                id="apelido"
+                                className="w-full rounded-lg border border-primary/15 bg-base px-4 py-3 text-sm font-medium text-primary outline-none transition focus:border-secondary focus:ring-2 focus:ring-secondary/20"
+                                value={data.apelido}
+                                onChange={(e) => setData('apelido', e.target.value)}
+                                required
+                            />
+                            <InputError className="mt-2" message={errors.apelido} />
+                        </div>
+                    </div>
+ 
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                            <label
+                                htmlFor="cpf"
+                                className="mb-1.5 ml-1 block text-[11px] font-bold uppercase tracking-wider text-primary/60"
+                            >
+                                CPF
+                            </label>
+                            <input
+                                id="cpf"
+                                className="w-full rounded-lg border border-primary/15 bg-base px-4 py-3 text-sm font-medium text-primary outline-none transition focus:border-secondary focus:ring-2 focus:ring-secondary/20"
+                                value={data.cpf}
+                                onChange={(e) => {
+                                    let val = e.target.value.replace(/\D/g, '');
+                                    if (val.length > 11) val = val.slice(0, 11);
+                                    let formatted = val;
+                                    if (val.length > 3) formatted = val.slice(0, 3) + '.' + val.slice(3);
+                                    if (val.length > 6) formatted = formatted.slice(0, 7) + '.' + formatted.slice(7);
+                                    if (val.length > 9) formatted = formatted.slice(0, 11) + '-' + formatted.slice(11);
+                                    setData('cpf', formatted);
+                                }}
+                                placeholder="000.000.000-00"
+                                required
+                            />
+                            <InputError className="mt-2" message={errors.cpf} />
+                        </div>
+ 
+                        <div className="flex items-center gap-2 rounded-lg border border-secondary/25 bg-secondary/10 p-3 h-[46px] mt-[22px]">
                             <span className="material-symbols-outlined text-sm text-secondary">
                                 verified_user
                             </span>

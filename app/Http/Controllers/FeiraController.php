@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Feira;
+use App\Models\EditoraRepresentante;
 use App\Http\Requests\StoreFeiraRequest;
 use App\Enums\FeiraStatus;
 use App\Jobs\SincronizarFeiraMaestroJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Validation\ValidationException;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Inertia\Inertia;
 
 class FeiraController extends Controller
@@ -49,7 +52,98 @@ class FeiraController extends Controller
                 'itensVenda' => fn($q) => $q->where('id_feira', $feira->id),
                 'pagamentos' => fn($q) => $q->where('id_feira', $feira->id)
             ])->latest('date_hour')->limit(10)->get()),
+            "editoras_representantes" => $feira->editorasRepresentantes()->orderBy('editora')->get(),
+            "representantes_unicos" => $feira->editorasRepresentantes()->distinct()->orderBy('representante')->pluck('representante'),
         ]);
+    }
+
+    public function storeEditoraRepresentante(Request $request, Feira $feira)
+    {
+        $validated = $request->validate([
+            'editora' => 'required|string|max:255',
+            'representante' => 'required|string|max:255',
+        ], [
+            'editora.required' => 'A editora é obrigatória.',
+            'representante.required' => 'O representante é obrigatório.',
+        ]);
+
+        $feira->editorasRepresentantes()->updateOrCreate(
+            ['editora' => trim($validated['editora'])],
+            ['representante' => trim($validated['representante'])]
+        );
+
+        return back()->with('success', 'Editora e Representante associados com sucesso!');
+    }
+
+    public function destroyEditoraRepresentante(Feira $feira, $id)
+    {
+        $feira->editorasRepresentantes()->findOrFail($id)->delete();
+        return back()->with('success', 'Associação removida com sucesso!');
+    }
+
+    public function importEditorasRepresentantes(Request $request, Feira $feira)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv,txt',
+        ], [
+            'file.required' => 'O arquivo é obrigatório.',
+            'file.mimes' => 'O arquivo deve ser do tipo .xlsx, .xls ou .csv.',
+        ]);
+
+        $file = $request->file('file');
+
+        try {
+            $spreadsheet = IOFactory::load($file->getRealPath());
+            $worksheet = $spreadsheet->getActiveSheet();
+            $rows = $worksheet->toArray();
+        } catch (\Exception $e) {
+            throw ValidationException::withMessages([
+                'file' => ['Não foi possível ler o arquivo. Certifique-se de que é um formato válido (.csv ou .xlsx).'],
+            ]);
+        }
+
+        if (empty($rows)) {
+            throw ValidationException::withMessages([
+                'file' => ['O arquivo está vazio.'],
+            ]);
+        }
+
+        // Ler cabeçalho
+        $header = array_map(function($h) {
+            return trim(strtolower($h));
+        }, $rows[0] ?? []);
+
+        $editoraIdx = array_search('editoras', $header);
+        if ($editoraIdx === false) {
+            $editoraIdx = array_search('editora', $header);
+        }
+
+        $representanteIdx = array_search('representante', $header);
+        if ($representanteIdx === false) {
+            $representanteIdx = array_search('representantes', $header);
+        }
+
+        if ($editoraIdx === false || $representanteIdx === false) {
+            throw ValidationException::withMessages([
+                'file' => ['As colunas do arquivo devem conter obrigatoriamente os cabeçalhos: "editoras" e "representante".'],
+            ]);
+        }
+
+        $count = 0;
+        foreach (array_slice($rows, 1) as $row) {
+            $editora = trim($row[$editoraIdx] ?? '');
+            $representante = trim($row[$representanteIdx] ?? '');
+
+            if ($editora !== '' && $representante !== '') {
+                $feira->editorasRepresentantes()->updateOrCreate(
+                    ['editora' => $editora],
+                    ['representante' => $representante]
+                );
+                $count++;
+            }
+        }
+
+        return back()->with('success', "$count registros de Editora e Representante importados com sucesso!");
     }
 
     /**
@@ -83,6 +177,14 @@ class FeiraController extends Controller
             $query->where('total_value', '<=', $request->input('max_value'));
         }
 
+        if ($request->filled('start_date')) {
+            $query->where('date_hour', '>=', $request->input('start_date') . ' 00:00:00');
+        }
+
+        if ($request->filled('end_date')) {
+            $query->where('date_hour', '<=', $request->input('end_date') . ' 23:59:59');
+        }
+
         $vendas = $query->paginate(100)->withQueryString();
 
         // Obter caixas únicos para o filtro select
@@ -96,7 +198,7 @@ class FeiraController extends Controller
         return Inertia::render("Feiras/Vendas", [
             "feira" => $feira->only('id', 'nome', 'is_sincronizando', 'status', 'status_integridade'),
             "vendas" => $vendas,
-            "filters" => $request->only(['search', 'sale_type', 'box', 'min_value', 'max_value']),
+            "filters" => $request->only(['search', 'sale_type', 'box', 'min_value', 'max_value', 'start_date', 'end_date']),
             "boxes" => $boxes,
         ]);
     }

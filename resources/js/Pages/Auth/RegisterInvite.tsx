@@ -1,17 +1,39 @@
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head, useForm } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 
-export default function ForgotPassword({ status }: { status?: string }) {
+type Props = {
+    email: string;
+    token: string;
+};
+
+export default function RegisterInvite({ email, token }: Props) {
+    const [userEditedNickname, setUserEditedNickname] = useState(false);
+
     const { data, setData, post, processing, errors } = useForm({
+        name: '',
         email: '',
         cpf: '',
-        ultimo_sobrenome: '',
+        apelido: '',
         password: '',
         password_confirmation: '',
     });
 
-    const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
+    // Atualização dinâmica do apelido à medida que preenche o nome completo
+    useEffect(() => {
+        if (!userEditedNickname) {
+            const parts = data.name.trim().split(/\s+/).filter(Boolean);
+            if (parts.length > 0) {
+                const firstTwo = parts.slice(0, 2);
+                const autoNickname = firstTwo
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                    .join(' ');
+                setData('apelido', autoNickname);
+            } else {
+                setData('apelido', '');
+            }
+        }
+    }, [data.name]);
 
     const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         let val = e.target.value.replace(/\D/g, '');
@@ -24,6 +46,8 @@ export default function ForgotPassword({ status }: { status?: string }) {
         
         setData('cpf', formatted);
     };
+
+    const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
 
     // Validação reativa de requisitos da senha
     const passCriteria = {
@@ -42,13 +66,27 @@ export default function ForgotPassword({ status }: { status?: string }) {
         const newErrors: Record<string, string> = {};
 
         // 1. Campos vazios
-        if (!data.email.trim()) newErrors.email = 'O e-mail é obrigatório.';
+        if (!data.name.trim()) newErrors.name = 'O nome completo é obrigatório.';
+        if (!data.email.trim()) newErrors.email = 'A confirmação do e-mail é obrigatória.';
         if (!data.cpf.trim()) newErrors.cpf = 'O CPF é obrigatório.';
-        if (!data.ultimo_sobrenome.trim()) newErrors.ultimo_sobrenome = 'O último sobrenome é obrigatório.';
-        if (!data.password) newErrors.password = 'A nova senha é obrigatória.';
+        if (!data.apelido.trim()) newErrors.apelido = 'O apelido é obrigatório.';
+        if (!data.password) newErrors.password = 'A senha é obrigatória.';
         if (!data.password_confirmation) newErrors.password_confirmation = 'A confirmação de senha é obrigatória.';
 
-        // 2. CPF tamanho
+        // 2. Nome completo deve ter pelo menos duas palavras
+        if (data.name.trim()) {
+            const words = data.name.trim().split(/\s+/).filter(Boolean);
+            if (words.length < 2) {
+                newErrors.name = 'O nome completo deve conter pelo menos o nome e um sobrenome.';
+            }
+        }
+
+        // 3. Confirmar e-mail idêntico ao convite
+        if (data.email.trim() && data.email.trim().toLowerCase() !== email.trim().toLowerCase()) {
+            newErrors.email = 'O e-mail digitado não corresponde ao e-mail convidado.';
+        }
+
+        // 4. CPF tamanho
         if (data.cpf.trim()) {
             const cleanCPF = data.cpf.replace(/\D/g, '');
             if (cleanCPF.length !== 11) {
@@ -56,14 +94,14 @@ export default function ForgotPassword({ status }: { status?: string }) {
             }
         }
 
-        // 3. Senha no padrão de segurança
+        // 5. Senha no padrão de segurança
         if (data.password && !allCriteriaMet) {
             newErrors.password = 'A senha não atende a todos os requisitos de segurança exigidos.';
         }
 
-        // 4. Confirmação de senha idêntica
+        // 6. Confirmação de senha idêntica
         if (data.password && data.password_confirmation && data.password !== data.password_confirmation) {
-            newErrors.password_confirmation = 'A confirmação de senha não confere com a nova senha digitada.';
+            newErrors.password_confirmation = 'A confirmação de senha não confere com a senha digitada.';
         }
 
         if (Object.keys(newErrors).length > 0) {
@@ -72,7 +110,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
         }
 
         setClientErrors({});
-        post(route('password.email'), {
+        post(route('convite.register', { token }), {
             preserveState: true,
             preserveScroll: true,
         });
@@ -92,20 +130,14 @@ export default function ForgotPassword({ status }: { status?: string }) {
 
     return (
         <GuestLayout>
-            <Head title="Esqueci Minha Senha" />
+            <Head title="Cadastro por Convite" />
 
             <div className="mb-6 text-center">
-                <h2 className="text-xl font-bold text-on-surface font-headline">Recuperação de Acesso</h2>
+                <h2 className="text-xl font-bold text-on-surface font-headline">Crie sua Conta</h2>
                 <p className="text-xs text-on-surface-variant font-body mt-1">
-                    Confirme seus dados cadastrais para redefinir sua senha diretamente.
+                    Insira seus dados para concluir o convite de acesso à plataforma.
                 </p>
             </div>
-
-            {status && (
-                <div className="mb-4 text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg border border-green-200 text-center uppercase tracking-wide">
-                    {status}
-                </div>
-            )}
 
             {Object.keys(allErrors).length > 0 && (
                 <div className="mb-4 bg-red-50 border border-red-200 text-red-800 p-3 rounded-lg text-xs font-bold font-body">
@@ -122,9 +154,26 @@ export default function ForgotPassword({ status }: { status?: string }) {
             )}
 
             <form onSubmit={submit} className="space-y-4">
-                {/* E-mail */}
+                {/* Nome Completo */}
                 <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider px-1">E-mail Cadastrado</label>
+                    <label className="text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider px-1">Nome Completo</label>
+                    <input
+                        type="text"
+                        value={data.name}
+                        onChange={e => {
+                            setData('name', e.target.value);
+                            clearError('name');
+                        }}
+                        placeholder="Nome completo do usuário"
+                        className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg py-2.5 px-3 font-body text-on-surface text-sm focus:border-primary/50 focus:ring-0 transition-all"
+                        required
+                    />
+                    {allErrors.name && <span className="text-error text-[10px] font-bold mt-0.5 px-1">{allErrors.name}</span>}
+                </div>
+
+                {/* E-mail de Confirmação */}
+                <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider px-1">Confirmar E-mail</label>
                     <input
                         type="email"
                         value={data.email}
@@ -132,52 +181,53 @@ export default function ForgotPassword({ status }: { status?: string }) {
                             setData('email', e.target.value);
                             clearError('email');
                         }}
-                        placeholder="seu-email@abdl.com.br"
+                        placeholder="Confirme o e-mail do seu convite"
                         className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg py-2.5 px-3 font-body text-on-surface text-sm focus:border-primary/50 focus:ring-0 transition-all"
                         required
-                        autoFocus
                     />
+                    <span className="text-[10px] text-outline px-1 font-medium">Você deve digitar exatamente o e-mail que recebeu o convite.</span>
                     {allErrors.email && <span className="text-error text-[10px] font-bold mt-0.5 px-1">{allErrors.email}</span>}
                 </div>
 
-                {/* CPF */}
-                <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider px-1">CPF Cadastrado</label>
-                    <input
-                        type="text"
-                        value={data.cpf}
-                        onChange={e => {
-                            handleCPFChange(e);
-                            clearError('cpf');
-                        }}
-                        placeholder="000.000.000-00"
-                        className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg py-2.5 px-3 font-body text-on-surface text-sm focus:border-primary/50 focus:ring-0 transition-all"
-                        required
-                    />
-                    {allErrors.cpf && <span className="text-error text-[10px] font-bold mt-0.5 px-1">{allErrors.cpf}</span>}
+                {/* CPF e Apelido */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider px-1">CPF</label>
+                        <input
+                            type="text"
+                            value={data.cpf}
+                            onChange={e => {
+                                handleCPFChange(e);
+                                clearError('cpf');
+                            }}
+                            placeholder="000.000.000-00"
+                            className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg py-2.5 px-3 font-body text-on-surface text-sm focus:border-primary/50 focus:ring-0 transition-all"
+                            required
+                        />
+                        {allErrors.cpf && <span className="text-error text-[10px] font-bold mt-0.5 px-1">{allErrors.cpf}</span>}
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider px-1">Apelido no Sistema</label>
+                        <input
+                            type="text"
+                            value={data.apelido}
+                            onChange={e => {
+                                setUserEditedNickname(true);
+                                setData('apelido', e.target.value);
+                                clearError('apelido');
+                            }}
+                            placeholder="Como quer ser chamado"
+                            className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg py-2.5 px-3 font-body text-on-surface text-sm focus:border-primary/50 focus:ring-0 transition-all"
+                            required
+                        />
+                        {allErrors.apelido && <span className="text-error text-[10px] font-bold mt-0.5 px-1">{allErrors.apelido}</span>}
+                    </div>
                 </div>
 
-                {/* Último Sobrenome */}
+                {/* Senha */}
                 <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider px-1">Último Sobrenome</label>
-                    <input
-                        type="text"
-                        value={data.ultimo_sobrenome}
-                        onChange={e => {
-                            setData('ultimo_sobrenome', e.target.value);
-                            clearError('ultimo_sobrenome');
-                        }}
-                        placeholder="Seu último sobrenome (sem abreviações)"
-                        className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg py-2.5 px-3 font-body text-on-surface text-sm focus:border-primary/50 focus:ring-0 transition-all"
-                        required
-                    />
-                    <span className="text-[9px] text-outline px-1 font-medium">Ex: Se seu nome for "Pedro Silva Santos", digite apenas "Santos".</span>
-                    {allErrors.ultimo_sobrenome && <span className="text-error text-[10px] font-bold mt-0.5 px-1">{allErrors.ultimo_sobrenome}</span>}
-                </div>
-
-                {/* Nova Senha */}
-                <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider px-1">Nova Senha</label>
+                    <label className="text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider px-1">Senha</label>
                     <input
                         type="password"
                         value={data.password}
@@ -231,7 +281,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
 
                 {/* Confirmação de Senha */}
                 <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider px-1">Confirmar Nova Senha</label>
+                    <label className="text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider px-1">Confirmar Senha</label>
                     <input
                         type="password"
                         value={data.password_confirmation}
@@ -246,22 +296,15 @@ export default function ForgotPassword({ status }: { status?: string }) {
                     {allErrors.password_confirmation && <span className="text-error text-[10px] font-bold mt-0.5 px-1">{allErrors.password_confirmation}</span>}
                 </div>
 
-                {/* Botões de Ação */}
-                <div className="pt-2 flex flex-col gap-3">
+                {/* Botão de Envio */}
+                <div className="pt-2">
                     <button
                         type="submit"
                         disabled={processing || (!allCriteriaMet && data.password.length > 0)}
                         className="w-full bg-gradient-to-br from-primary to-primary-container hover:brightness-110 text-white font-headline font-bold py-3 rounded-lg text-sm shadow-md transition-all active:scale-[0.98] disabled:opacity-50"
                     >
-                        {processing ? 'Redefinindo...' : 'Redefinir Senha'}
+                        {processing ? 'Criando Conta...' : 'Concluir Cadastro'}
                     </button>
-
-                    <Link
-                        href={route('login')}
-                        className="w-full text-center bg-surface-container-low hover:bg-surface-container-high text-on-surface py-3 rounded-lg font-headline font-bold text-xs shadow-sm transition-all active:scale-[0.98]"
-                    >
-                        Voltar para o Login
-                    </Link>
                 </div>
             </form>
         </GuestLayout>

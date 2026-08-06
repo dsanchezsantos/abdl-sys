@@ -115,11 +115,61 @@ class CartoesController extends Controller
                 ->where('pagamentos.id_feira', $cartao->id_feira);
         });
 
+        // Filtro de range de valor (min_value, max_value)
+        if ($request->filled('min_value')) {
+            $vendasQuery->where('total_value', '>=', $request->input('min_value'));
+        }
+        if ($request->filled('max_value')) {
+            $vendasQuery->where('total_value', '<=', $request->input('max_value'));
+        }
+
+        // Filtro de range de data (start_date, end_date)
+        if ($request->filled('start_date')) {
+            $vendasQuery->where('date_hour', '>=', $request->input('start_date') . ' 00:00:00');
+        }
+        if ($request->filled('end_date')) {
+            $vendasQuery->where('date_hour', '<=', $request->input('end_date') . ' 23:59:59');
+        }
+
+        // Filtro de método de pagamento (sale_type)
+        if ($request->filled('sale_type')) {
+            $vendasQuery->where('sale_type', $request->input('sale_type'));
+        }
+
+        // Filtro de caixa (box)
+        if ($request->filled('box')) {
+            $vendasQuery->where('box', $request->input('box'));
+        }
+
+        // Filtro de range de quantidade de itens
+        if ($request->filled('min_items')) {
+            $vendasQuery->whereRaw('(select sum(amount) from itens_venda where itens_venda.sell_number = venda_headers.sell_number and itens_venda.id_feira = venda_headers.id_feira) >= ?', [$request->input('min_items')]);
+        }
+        if ($request->filled('max_items')) {
+            $vendasQuery->whereRaw('(select sum(amount) from itens_venda where itens_venda.sell_number = venda_headers.sell_number and itens_venda.id_feira = venda_headers.id_feira) <= ?', [$request->input('max_items')]);
+        }
+
         // Eager load relations de itens e pagamentos
         $vendas = $vendasQuery->with(['itensVenda', 'pagamentos'])
             ->latest('date_hour')
             ->paginate(10)
             ->withQueryString();
+
+        // Obter caixas/PDVs únicos que registraram vendas com este cartão
+        $boxes = DB::table('venda_headers')
+            ->whereExists(function ($query) use ($cartao) {
+                $query->select(DB::raw(1))
+                    ->from('pagamentos')
+                    ->whereColumn('pagamentos.sell_number', 'venda_headers.sell_number')
+                    ->whereColumn('pagamentos.id_feira', 'venda_headers.id_feira')
+                    ->where('pagamentos.tag_code', $cartao->tag_code)
+                    ->where('pagamentos.id_feira', $cartao->id_feira);
+            })
+            ->whereNotNull('box')
+            ->where('box', '!=', '')
+            ->distinct()
+            ->orderBy('box')
+            ->pluck('box');
 
         return Inertia::render('Cartoes/Show', [
             'cartao' => $cartao,
@@ -128,6 +178,8 @@ class CartoesController extends Controller
                 'total_transacoes' => $totalTransacoes ?: 0,
             ],
             'vendas' => $vendas,
+            'filters' => $request->only(['min_value', 'max_value', 'start_date', 'end_date', 'sale_type', 'min_items', 'max_items', 'box']),
+            'boxes' => $boxes,
         ]);
     }
 }

@@ -69,6 +69,8 @@ interface Props {
         box?: string;
         min_value?: string;
         max_value?: string;
+        start_date?: string;
+        end_date?: string;
     };
     boxes: string[];
 }
@@ -79,6 +81,8 @@ export default function Vendas({ feira, vendas, filters, boxes }: Props) {
     const [box, setBox] = useState(filters.box || "");
     const [minValue, setMinValue] = useState(filters.min_value || "");
     const [maxValue, setMaxValue] = useState(filters.max_value || "");
+    const [startDate, setStartDate] = useState(filters.start_date || "");
+    const [endDate, setEndDate] = useState(filters.end_date || "");
     const [selectedVenda, setSelectedVenda] = useState<Venda | null>(null);
 
     // Formatar Moeda para BRL
@@ -97,6 +101,7 @@ export default function Vendas({ feira, vendas, filters, boxes }: Props) {
 
         router.get(route("feiras.vendas", feira.id), cleaned, {
             preserveState: true,
+            preserveScroll: true,
             replace: true,
         });
     };
@@ -109,6 +114,8 @@ export default function Vendas({ feira, vendas, filters, boxes }: Props) {
             box,
             min_value: minValue,
             max_value: maxValue,
+            start_date: startDate,
+            end_date: endDate,
         });
     };
 
@@ -120,6 +127,8 @@ export default function Vendas({ feira, vendas, filters, boxes }: Props) {
             box,
             min_value: minValue,
             max_value: maxValue,
+            start_date: startDate,
+            end_date: endDate,
         });
     };
 
@@ -131,6 +140,8 @@ export default function Vendas({ feira, vendas, filters, boxes }: Props) {
             box: val,
             min_value: minValue,
             max_value: maxValue,
+            start_date: startDate,
+            end_date: endDate,
         });
     };
 
@@ -140,6 +151,8 @@ export default function Vendas({ feira, vendas, filters, boxes }: Props) {
         setBox("");
         setMinValue("");
         setMaxValue("");
+        setStartDate("");
+        setEndDate("");
         apply({});
     };
 
@@ -164,13 +177,15 @@ export default function Vendas({ feira, vendas, filters, boxes }: Props) {
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    <Link
-                        href={route("feiras.auditoria", feira.id)}
-                        className="flex items-center gap-2 px-4 py-2 bg-primary/5 text-primary rounded-lg font-bold text-sm hover:bg-primary/10 transition-all active:scale-95"
+                    <a
+                        href={route("feiras.export.vendas", feira.id)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-white border border-primary/20 text-primary rounded-lg font-bold text-sm hover:bg-primary/5 transition-all active:scale-95 shadow-sm"
                     >
-                        <span className="material-symbols-outlined text-[18px]">query_stats</span>
-                        Ir para Painel de Auditoria
-                    </Link>
+                        <span className="material-symbols-outlined text-[18px]">download</span>
+                        Exportar Vendas (.xlsx)
+                    </a>
                 </div>
             </header>
 
@@ -189,8 +204,8 @@ export default function Vendas({ feira, vendas, filters, boxes }: Props) {
                         </div>
                     </div>
 
-                    <form onSubmit={handleSearch} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <form onSubmit={handleSearch} className="space-y-4 font-manrope">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {/* Buscar por ID */}
                             <div className="relative">
                                 <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest block mb-1">Buscar Venda (ID)</label>
@@ -215,8 +230,8 @@ export default function Vendas({ feira, vendas, filters, boxes }: Props) {
                                     className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs w-full transition-all text-primary font-semibold"
                                 >
                                     <option value="">Todos os métodos</option>
-                                    <option value="-1">Pagamento Único (-1)</option>
-                                    <option value="1">Múltiplos Pagamentos (1)</option>
+                                    <option value="-1">Pagamento Único</option>
+                                    <option value="1">Múltiplos Pagamentos</option>
                                 </select>
                             </div>
 
@@ -235,6 +250,30 @@ export default function Vendas({ feira, vendas, filters, boxes }: Props) {
                                         </option>
                                     ))}
                                 </select>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            {/* Data Inicial */}
+                            <div>
+                                <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest block mb-1">Data Inicial</label>
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs w-full transition-all text-primary font-semibold"
+                                />
+                            </div>
+
+                            {/* Data Final */}
+                            <div>
+                                <label className="text-[10px] font-bold text-primary/50 uppercase tracking-widest block mb-1">Data Final</label>
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs w-full transition-all text-primary font-semibold"
+                                />
                             </div>
 
                             {/* Faixa de Valor Mínimo */}
@@ -266,11 +305,11 @@ export default function Vendas({ feira, vendas, filters, boxes }: Props) {
 
                         {/* Botões de Ação */}
                         <div className="flex justify-end items-center gap-3 pt-2">
-                            {(search || saleType || box || minValue || maxValue) && (
+                            {(search || saleType || box || minValue || maxValue || startDate || endDate) && (
                                 <button
                                     type="button"
                                     onClick={handleClear}
-                                    className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-error bg-error/5 hover:bg-error/10 rounded-lg transition-all active:scale-95"
+                                    className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-error bg-error/5 hover:bg-error/10 rounded-lg transition-all active:scale-95 shadow-sm"
                                 >
                                     <span className="material-symbols-outlined text-[16px]">clear_all</span>
                                     Limpar Filtros
