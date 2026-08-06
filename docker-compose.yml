@@ -79,6 +79,7 @@ services:
             - "--log-level=warn"
 
     quickchart:
+        platform: linux/amd64
         image: ianw/quickchart
         container_name: abdl-sys-quickchart
         restart: unless-stopped
