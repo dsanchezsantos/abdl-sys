@@ -80,8 +80,8 @@ services:
             - "--log-level=warn"
 
     quickchart:
-        platform: linux/amd64
-        image: ianw/quickchart
+        build:
+            context: https://github.com/typpo/quickchart.git#main
         container_name: abdl-sys-quickchart
         restart: unless-stopped
         networks:
