@@ -224,25 +224,90 @@ class FeiraController extends Controller
 
     public function retrySync(Feira $feira)
     {
-        if (!$feira->ultimo_batch_id) {
-            return back()->with('error', 'Não há um lote anterior para repescar.');
+        // Bloqueio Pessimista para evitar disparos duplos
+        $feira = Feira::where('id', $feira->id)->lockForUpdate()->first();
+
+        if ($feira->is_sincronizando) {
+            return back()->with('error', 'Uma sincronização já está em andamento para esta feira.');
         }
 
-        $batch = Bus::findBatch($feira->ultimo_batch_id);
+        // Buscar páginas que falharam e estão pendentes
+        $failedPages = \Illuminate\Support\Facades\DB::table('erros_integracao')
+            ->where('id_feira', $feira->id)
+            ->where('status', 'PENDENTE')
+            ->pluck('pagina')
+            ->toArray();
 
-        if (!$batch || $batch->finished()) {
-            // Se o lote já terminou e queremos repescar as falhas, o retry() do Laravel funciona
-            // Mas se o lote sumiu do Redis (pruning), precisamos tratar.
-            if (!$batch) {
-                return back()->with('error', 'O lote original expirou. Por favor, inicie uma nova sincronização total.');
-            }
+        // Remover eventual página 0 (erro do Maestro) para repescagem de páginas reais
+        $failedPages = array_filter($failedPages, function ($page) {
+            return $page > 0;
+        });
+
+        if (empty($failedPages)) {
+            return back()->with('error', 'Não há páginas com falha pendente para repescar.');
         }
 
         $feira->update(['is_sincronizando' => true]);
-        
-        \Illuminate\Support\Facades\Artisan::call('queue:retry-batch', [
-            'id' => [$feira->ultimo_batch_id]
-        ]);
+
+        $perPage = 100; // Sempre 100 para manter a consistência
+        $jobs = [];
+        foreach ($failedPages as $page) {
+            $jobs[] = new \App\Jobs\ProcessarPaginaVendaJob($feira->id, $page, $perPage);
+        }
+
+        if (empty($jobs)) {
+            $feira->update(['is_sincronizando' => false]);
+            return back()->with('error', 'Nenhuma página de venda válida encontrada para repescagem.');
+        }
+
+        $usuarioId = auth()->id();
+
+        // Criar um novo lote de repescagem
+        $batch = Bus::batch($jobs)
+            ->name("Repescagem de Falhas Feira #{$feira->id}: {$feira->nome}")
+            ->allowFailures()
+            ->then(function (\Illuminate\Bus\Batch $batch) use ($feira, $usuarioId) {
+                \Illuminate\Support\Facades\Log::info("Lote de repescagem finalizado com SUCESSO para a Feira #{$feira->id}");
+                \App\Jobs\CalcularEstatisticasFeiraJob::dispatch($feira->id);
+
+                if ($usuarioId) {
+                    $usuario = \App\Models\User::find($usuarioId);
+                    if ($usuario) {
+                        $usuario->notify(new \App\Notifications\SincronizacaoFeiraNotification($feira, 'sucesso'));
+                    }
+                }
+            })
+            ->catch(function (\Illuminate\Bus\Batch $batch, \Throwable $e) use ($feira) {
+                \Illuminate\Support\Facades\Log::error("ERRO crítico no lote de repescagem para a Feira #{$feira->id}: " . $e->getMessage());
+            })
+            ->finally(function (\Illuminate\Bus\Batch $batch) use ($feira, $usuarioId) {
+                // Verificar se ainda restam falhas pendentes no banco para essa feira
+                $hasRemainingFailures = \Illuminate\Support\Facades\DB::table('erros_integracao')
+                    ->where('id_feira', $feira->id)
+                    ->where('status', 'PENDENTE')
+                    ->exists();
+
+                $statusIntegridade = $hasRemainingFailures ? 'FALHA_PARCIAL' : 'INTEGRO';
+
+                $feira->update([
+                    'is_sincronizando' => false,
+                    'ultima_sincronizacao_em' => now(),
+                    'status_integridade' => $statusIntegridade,
+                ]);
+
+                \Illuminate\Support\Facades\Log::info("Lote de repescagem CONCLUÍDO ({$statusIntegridade}) para a Feira #{$feira->id}");
+
+                if ($hasRemainingFailures && $usuarioId) {
+                    $usuario = \App\Models\User::find($usuarioId);
+                    if ($usuario) {
+                        $usuario->notify(new \App\Notifications\SincronizacaoFeiraNotification($feira, 'falha_parcial'));
+                    }
+                }
+            })
+            ->dispatch();
+
+        // Salvar ID do novo lote
+        $feira->update(['ultimo_batch_id' => $batch->id]);
 
         return back()->with('success', 'Repescagem de dados iniciada.');
     }

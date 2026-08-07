@@ -39,6 +39,9 @@ class SincronizarFeiraMaestroJob implements ShouldQueue
         $feira = Feira::findOrFail($this->feiraId);
 
         try {
+            // Limpar erros de integração anteriores para iniciar com o estado limpo
+            DB::table('erros_integracao')->where('id_feira', $this->feiraId)->delete();
+
             $nowigo = new NowigoService($feira);
 
             Log::info("Iniciando Maestro para a Feira #{$feira->id}");
@@ -54,17 +57,9 @@ class SincronizarFeiraMaestroJob implements ShouldQueue
 
             Log::info("Feira #{$feira->id}: Total de itens: {$totalItems}, Páginas na API: {$totalPagesApi}. Tempo resposta P1: {$duration}ms");
 
-            // 2. Ajuste Dinâmico (Dynamic Pacing)
+            // 2. Tamanho de página fixado em 100 para manter a integridade com o Probe e a API
             $perPage = 100;
-            if ($duration > 2000) {
-                // Se a rede for lenta, reduzimos para 50 para evitar timeouts
-                $perPage = 50;
-            }
-
-            // Recalcular páginas totais com o novo perPage
-            $perPage = max(10, $perPage); 
-            $totalPages = ceil($totalItems / $perPage);
-            $totalPages = max(0, $totalPages);
+            $totalPages = $totalPagesApi;
 
             // APLICAÇÃO DE LIMITE DE TESTE (via .env)
             $limit = config('services.nowigo.limit_pages');
@@ -73,7 +68,7 @@ class SincronizarFeiraMaestroJob implements ShouldQueue
                 $totalPages = $limit;
             }
 
-            Log::info("Feira #{$feira->id}: Definido perPage={$perPage}. Total de páginas recalculadas: {$totalPages}");
+            Log::info("Feira #{$feira->id}: Definido perPage={$perPage}. Total de páginas: {$totalPages}");
 
             $usuarioId = $this->usuarioId;
 

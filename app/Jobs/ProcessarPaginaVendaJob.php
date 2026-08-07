@@ -65,6 +65,12 @@ class ProcessarPaginaVendaJob implements ShouldQueue
                 $this->processarVenda($nowigo, $saleHeader);
             }
 
+            // Limpar registro de erro de integração anterior no sucesso desta página
+            DB::table('erros_integracao')
+                ->where('id_feira', $this->feiraId)
+                ->where('pagina', $this->page)
+                ->delete();
+
             Log::debug("Página {$this->page} finalizada para a Feira #{$this->feiraId}");
         } catch (\Throwable $e) {
             Log::error("FALHA CRÍTICA na Página {$this->page} (Feira #{$this->feiraId}): " . $e->getMessage());
