@@ -95,6 +95,16 @@ class ProcessarPaginaVendaJob implements ShouldQueue
         $sellNumber = (string) $header['sellNumber'];
         $saleType = $header['type'] ?? null;
 
+        // Otimização Crucial: Evitar requisições de detalhes duplicadas para vendas já processadas
+        $alreadyProcessed = VendaHeader::where('id_feira', $this->feiraId)
+            ->where('sell_number', $sellNumber)
+            ->where('processado', true)
+            ->exists();
+
+        if ($alreadyProcessed) {
+            return;
+        }
+
         // Buscar detalhes da venda
         $response = $nowigo->buscarDetalhe($sellNumber, $saleType);
         $detail = $response['data'] ?? [];
