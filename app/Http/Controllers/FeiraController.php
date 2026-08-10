@@ -265,7 +265,8 @@ class FeiraController extends Controller
         $perPage = 100;
 
         $jobs = $paginasFalhadas->map(
-            fn ($page) => new ProcessarPaginaVendaJob($feira->id, $page, $perPage)
+            fn ($page, $index) => (new ProcessarPaginaVendaJob($feira->id, $page, $perPage))
+                ->delay(now()->addSeconds($index * 5))
         )->toArray();
 
         $batch = Bus::batch($jobs)

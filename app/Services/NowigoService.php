@@ -74,7 +74,11 @@ class NowigoService
     protected function request(array $params): array
     {
         try {
-            $response = Http::retry(
+            $response = Http::withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept' => 'application/json, text/javascript, */*; q=0.01',
+                'Accept-Language' => 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+            ])->retry(
                 times: 3,
                 sleepMilliseconds: function (int $attempt, ?\Exception $exception) {
                     // Se for rate limit (403/429), backoff agressivo
