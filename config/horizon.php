@@ -210,6 +210,18 @@ return [
             'timeout' => 3600,
             'nice' => 0,
         ],
+        'supervisor-nowigo' => [
+            'connection' => 'redis',
+            'queue' => ['sync-nowigo'],
+            'balance' => 'false',
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 256,
+            'tries' => 1,
+            'timeout' => 3600,
+            'nice' => 0,
+        ],
     ],
 
     'environments' => [
@@ -219,11 +231,17 @@ return [
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
+            'supervisor-nowigo' => [
+                'maxProcesses' => 1,
+            ],
         ],
 
         'local' => [
             'supervisor-1' => [
                 'maxProcesses' => 3,
+            ],
+            'supervisor-nowigo' => [
+                'maxProcesses' => 1,
             ],
         ],
     ],

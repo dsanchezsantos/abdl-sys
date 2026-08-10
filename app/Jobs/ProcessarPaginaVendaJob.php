@@ -31,7 +31,7 @@ class ProcessarPaginaVendaJob implements ShouldQueue
      *
      * @var int
      */
-    public $timeout = 300;
+    public $timeout = 600;
 
     /**
      * Create a new job instance.
@@ -41,6 +41,7 @@ class ProcessarPaginaVendaJob implements ShouldQueue
         $this->feiraId = $feiraId;
         $this->page = $page;
         $this->perPage = $perPage;
+        $this->onQueue('sync-nowigo');
     }
 
     /**
@@ -63,6 +64,7 @@ class ProcessarPaginaVendaJob implements ShouldQueue
 
             foreach ($sales as $saleHeader) {
                 $this->processarVenda($nowigo, $saleHeader);
+                $nowigo->throttle();
             }
 
             // Limpar registro de erro de integração anterior no sucesso desta página

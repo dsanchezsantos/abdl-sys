@@ -55,23 +55,74 @@ class NowigoService
     }
 
     /**
-     * Executa a requisição HTTP com retry e tratamento de erro.
+     * Pausa entre chamadas consecutivas para evitar rate limiting da API.
+     * Abordagem conservadora: 500ms (2 req/s max).
+     */
+    public function throttle(): void
+    {
+        usleep(500_000);
+    }
+
+    /**
+     * Executa a requisição HTTP com retry inteligente e tratamento de 403 (rate limit).
+     *
+     * Estratégia de backoff:
+     * - Erros 403/429 (rate limit): espera 30s × tentativa (30s, 60s, 90s)
+     * - Erros 5xx (servidor):        espera 5s × tentativa (5s, 10s, 15s)
+     * - Erros 4xx (cliente):         não retenta (ex: 400, 404)
      */
     protected function request(array $params): array
     {
         try {
-            $response = Http::retry(3, 1000)
+            $response = Http::retry(
+                times: 3,
+                sleepMilliseconds: function (int $attempt, ?\Exception $exception) {
+                    // Se for rate limit (403/429), backoff agressivo
+                    if ($exception instanceof \Illuminate\Http\Client\RequestException
+                        && in_array($exception->response?->status(), [403, 429])
+                    ) {
+                        $delay = $attempt * 30000; // 30s, 60s, 90s
+                        Log::warning("Rate limit detectado (Feira #{$this->feira->id}). Aguardando {$delay}ms antes da tentativa {$attempt}...");
+                        return $delay;
+                    }
+
+                    // Demais erros: backoff padrão
+                    return $attempt * 5000; // 5s, 10s, 15s
+                },
+                when: function (\Exception $exception) {
+                    // Erros de conexão/timeout: sempre retenta
+                    if (! $exception instanceof \Illuminate\Http\Client\RequestException) {
+                        return true;
+                    }
+
+                    $status = $exception->response?->status();
+
+                    // Rate limit (403/429) e erros de servidor (5xx): retenta
+                    if (in_array($status, [403, 429]) || $status >= 500) {
+                        return true;
+                    }
+
+                    // Demais erros de cliente (400, 404, etc): não retenta
+                    return false;
+                },
+                throw: true
+            )
                 ->timeout(30)
                 ->get($this->baseUrl, $params);
 
             if ($response->failed()) {
-                throw new NowigoApiException("API Nowigo retornou erro {$response->status()}: {$response->body()}");
+                throw new NowigoApiException(
+                    "API Nowigo retornou erro {$response->status()}: {$response->body()}",
+                    $response->status()
+                );
             }
 
             $data = $response->json();
 
             if (!isset($data['data'])) {
-                throw new NowigoApiException("API Nowigo retornou formato inesperado: " . json_encode($data));
+                throw new NowigoApiException(
+                    "API Nowigo retornou formato inesperado: " . json_encode($data)
+                );
             }
 
             return $data;
