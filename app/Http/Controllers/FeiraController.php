@@ -270,6 +270,7 @@ class FeiraController extends Controller
         )->toArray();
 
         $batch = Bus::batch($jobs)
+            ->onQueue('sync-nowigo')
             ->name("Repescagem Feira #{$feira->id}: {$feira->nome}")
             ->allowFailures()
             ->then(function (Batch $batch) use ($feira, $usuarioId) {

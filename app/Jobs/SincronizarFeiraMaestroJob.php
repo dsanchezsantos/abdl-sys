@@ -74,6 +74,7 @@ class SincronizarFeiraMaestroJob implements ShouldQueue
 
             // 3. Criar o Lote (Batch) Inicial
             $batch = Bus::batch([])
+                ->onQueue('sync-nowigo')
                 ->name("Sincronização Feira #{$feira->id}: {$feira->nome}")
                 ->allowFailures()
                 ->then(function (Batch $batch) use ($feira, $usuarioId) {
