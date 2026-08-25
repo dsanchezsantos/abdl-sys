@@ -11,6 +11,7 @@ export default function SyncFairModal({ show, onClose }: SyncFairModalProps) {
         nome: "",
         data_inicio: "",
         data_fim: "",
+        endpoint_url: "",
         evento_id_api: "",
         user_id_api: "",
     });
@@ -71,6 +72,26 @@ export default function SyncFairModal({ show, onClose }: SyncFairModalProps) {
                             />
                         </div>
                         {errors.nome && <p className="text-xs font-bold text-red-500">{errors.nome}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-xs font-extrabold uppercase tracking-wider text-primary/60">
+                            URL do Endpoint (API)
+                        </label>
+                        <div className="relative">
+                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-lg text-primary/45">
+                                link
+                            </span>
+                            <input
+                                className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm font-medium text-primary transition-all placeholder:text-primary/35 focus:border-secondary focus:bg-white focus:ring-0"
+                                placeholder="https://feiradolivro-cidade.nowigo.com.br/app/sale.mdl"
+                                type="url"
+                                value={data.endpoint_url}
+                                onChange={(e) => setData("endpoint_url", e.target.value)}
+                                required
+                            />
+                        </div>
+                        {errors.endpoint_url && <p className="text-xs font-bold text-red-500">{errors.endpoint_url}</p>}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">

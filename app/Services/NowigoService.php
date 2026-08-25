@@ -18,7 +18,7 @@ class NowigoService
     public function __construct(Feira $feira)
     {
         $this->feira = $feira;
-        $this->baseUrl = config('services.nowigo.base_url');
+        $this->baseUrl = $feira->endpoint_url ?? config('services.nowigo.base_url');
     }
 
     /**
@@ -87,7 +87,7 @@ class NowigoService
             $isRateLimited = ($e instanceof NowigoApiException && $e->isRateLimited()) 
                 || ($e instanceof \Illuminate\Http\Client\RequestException && in_array($e->response?->status(), [403, 429]));
 
-            if ($isRateLimited && $proxyUrl) {
+            if ($isRateLimited && !empty($proxyUrl)) {
                 $status = $e instanceof NowigoApiException ? $e->getHttpStatus() : $e->response?->status();
                 Log::warning("IP bloqueado ou rate limit na URL direta (Status: {$status}). Redirecionando requisição via Cloudflare Proxy...");
                 try {

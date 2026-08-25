@@ -16,6 +16,7 @@ class Feira extends Model
         "nome",
         "data_inicio",
         "data_fim",
+        "endpoint_url",
         "evento_id_api",
         "user_id_api",
         "ultima_sincronizacao_em",

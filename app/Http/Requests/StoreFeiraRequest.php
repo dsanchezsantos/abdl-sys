@@ -25,6 +25,7 @@ class StoreFeiraRequest extends FormRequest
             "nome" => "required|string|max:255",
             "data_inicio" => "required|date",
             "data_fim" => "required|date|after_or_equal:data_inicio",
+            "endpoint_url" => "required|url|max:500",
             "evento_id_api" => "required|string",
             "user_id_api" => "required|string",
         ];
@@ -37,6 +38,8 @@ class StoreFeiraRequest extends FormRequest
     {
         return [
             "data_fim.after_or_equal" => "A data de fim não pode ser anterior à data de início.",
+            "endpoint_url.required" => "A URL do endpoint é obrigatória.",
+            "endpoint_url.url" => "A URL do endpoint informada não é válida.",
         ];
     }
 }
