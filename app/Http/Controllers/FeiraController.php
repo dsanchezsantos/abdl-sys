@@ -229,7 +229,7 @@ class FeiraController extends Controller
 
     public function retrySync(Feira $feira)
     {
-        // 1. Buscar as páginas que falharam
+        // 1. Buscar páginas com falha registrada
         $paginasFalhadas = DB::table('erros_integracao')
             ->where('id_feira', $feira->id)
             ->where('status', 'PENDENTE')
@@ -238,11 +238,63 @@ class FeiraController extends Controller
             ->filter(fn ($p) => $p > 0) // Ignora erro 0 (Maestro)
             ->values();
 
-        if ($paginasFalhadas->isEmpty()) {
+        // 2. Detectar páginas "órfãs" — jobs que nunca executaram (ficaram pendentes no Redis)
+        $paginasOrfas = collect();
+        $perPage = 100;
+
+        try {
+            $nowigo = new \App\Services\NowigoService($feira);
+            $probe = $nowigo->buscarPagina(1, $perPage);
+            $totalPages = (int) ($probe['pagination']['totalPages'] ?? 0);
+
+            if ($totalPages > 0) {
+                $limit = config('services.nowigo.limit_pages');
+                if ($limit && $totalPages > $limit) {
+                    $totalPages = $limit;
+                }
+
+                $todasPaginas = collect(range(1, $totalPages));
+
+                // Páginas que têm QUALQUER registro em erros_integracao (já sabemos que executaram)
+                $paginasComErro = DB::table('erros_integracao')
+                    ->where('id_feira', $feira->id)
+                    ->where('pagina', '>', 0)
+                    ->distinct()
+                    ->pluck('pagina');
+
+                // Candidatas: páginas sem erro registrado (podem ter rodado com sucesso, ou nunca rodaram)
+                $paginasCandidatas = $todasPaginas->diff($paginasComErro);
+
+                // Heurística: comparar total de vendas processadas vs. o esperado pelas páginas "limpas"
+                // Se há déficit significativo (>10%), reprocessar todas as candidatas.
+                // É seguro porque o ProcessarPaginaVendaJob usa upsert/updateOrCreate (idempotente).
+                $totalVendasProcessadas = \App\Models\VendaHeader::where('id_feira', $feira->id)
+                    ->where('processado', true)
+                    ->count();
+
+                $vendasEsperadas = $paginasCandidatas->count() * $perPage;
+
+                if ($paginasCandidatas->isNotEmpty() && $totalVendasProcessadas < $vendasEsperadas * 0.9) {
+                    $paginasOrfas = $paginasCandidatas;
+                    Log::info("Repescagem Feira #{$feira->id}: {$paginasOrfas->count()} páginas órfãs detectadas (vendas: {$totalVendasProcessadas}, esperado: ~{$vendasEsperadas})");
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning("Repescagem Feira #{$feira->id}: Probe da API falhou, usando apenas erros registrados. Erro: " . $e->getMessage());
+        }
+
+        // 3. Unir páginas falhadas + órfãs, sem duplicatas
+        $paginasParaReprocessar = $paginasFalhadas
+            ->merge($paginasOrfas)
+            ->unique()
+            ->sort()
+            ->values();
+
+        if ($paginasParaReprocessar->isEmpty()) {
             return back()->with('error', 'Não há páginas pendentes para repescagem.');
         }
 
-        // 2. Bloqueio Pessimista
+        // 4. Bloqueio Pessimista
         $feira = Feira::where('id', $feira->id)->lockForUpdate()->first();
 
         if ($feira->is_sincronizando) {
@@ -251,7 +303,7 @@ class FeiraController extends Controller
 
         $feira->update(['is_sincronizando' => true]);
 
-        // 3. Marcar os erros antigos como em retentativa
+        // 5. Marcar os erros antigos como em retentativa
         DB::table('erros_integracao')
             ->where('id_feira', $feira->id)
             ->where('status', 'PENDENTE')
@@ -259,15 +311,14 @@ class FeiraController extends Controller
 
         $usuarioId = auth()->id();
 
-        // 4. Criar novo batch com callbacks corretos
-        // IMPORTANTE: Manter perPage=100 (padrão do Maestro) para que os números de página
-        // em erros_integracao apontem para os mesmos dados da sincronização original.
-        $perPage = 100;
-
-        $jobs = $paginasFalhadas->map(
+        // 6. Criar novo batch com callbacks corretos
+        $jobs = $paginasParaReprocessar->map(
             fn ($page, $index) => (new ProcessarPaginaVendaJob($feira->id, $page, $perPage))
                 ->delay(now()->addSeconds($index * 5))
         )->toArray();
+
+        $totalFalhadas = $paginasFalhadas->count();
+        $totalOrfas = $paginasOrfas->unique()->diff($paginasFalhadas)->count();
 
         $batch = Bus::batch($jobs)
             ->onQueue('sync-nowigo')
@@ -303,6 +354,11 @@ class FeiraController extends Controller
 
         $feira->update(['ultimo_batch_id' => $batch->id]);
 
-        return back()->with('success', "Repescagem iniciada: {$paginasFalhadas->count()} páginas serão reprocessadas.");
+        $msg = "Repescagem iniciada: {$paginasParaReprocessar->count()} páginas";
+        if ($totalFalhadas > 0) $msg .= " ({$totalFalhadas} falhadas";
+        if ($totalOrfas > 0) $msg .= ($totalFalhadas > 0 ? " + " : "(") . "{$totalOrfas} órfãs";
+        $msg .= ").";
+
+        return back()->with('success', $msg);
     }
 }

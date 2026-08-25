@@ -168,7 +168,10 @@ class ProcessarPaginaVendaJob implements ShouldQueue
             $tag = NowigoService::normalizeText($p['tagCode'] ?? null);
             $group = NowigoService::normalizeText($p['group'] ?? null);
             if ($tag && !in_array($tag, ['NÃO DISPONÍVEL', 'NAO DISPONIVEL', 'N/A']) && $group !== 'PAGAMENTO SEM GRUPO') {
-                $cartoes[] = [
+                // Deduplicar pela chave composta para evitar "ON CONFLICT DO UPDATE
+                // command cannot affect row a second time" no PostgreSQL
+                $key = $this->feiraId . '|' . $tag;
+                $cartoes[$key] = [
                     'id_feira' => $this->feiraId,
                     'tag_code' => $tag,
                     'grupo' => $group,
@@ -178,7 +181,7 @@ class ProcessarPaginaVendaJob implements ShouldQueue
         }
 
         if (!empty($cartoes)) {
-            Cartao::upsert($cartoes, ['id_feira', 'tag_code'], ['grupo', 'updated_at']);
+            Cartao::upsert(array_values($cartoes), ['id_feira', 'tag_code'], ['grupo', 'updated_at']);
         }
     }
 
