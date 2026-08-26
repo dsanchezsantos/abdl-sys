@@ -22,6 +22,11 @@ class GerarRelatorioJob implements ShouldQueue
      */
     public $timeout = 3600;
 
+    /**
+     * O número de tentativas permitidas para o job.
+     */
+    public $tries = 1;
+
     protected $relatorio;
 
     /**
