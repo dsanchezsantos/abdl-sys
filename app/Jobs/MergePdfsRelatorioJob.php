@@ -67,6 +67,9 @@ class MergePdfsRelatorioJob implements ShouldQueue
 
             Log::info("Relatório #{$this->relatorio->id} finalizado com sucesso. Arquivo: {$storagePath}");
 
+            // LIMPEZA EM CASO DE SUCESSO: Apagar os PDFs parciais (chunks)
+            $this->limparChunks();
+
         } catch (\Throwable $e) {
             Log::error("Erro no Merge do relatório #{$this->relatorio->id}: " . $e->getMessage());
             $this->relatorio->update([
@@ -78,13 +81,38 @@ class MergePdfsRelatorioJob implements ShouldQueue
                 $this->relatorio->usuario->notify(new \App\Notifications\RelatorioFalhaNotification($this->relatorio));
             }
             throw $e;
-        } finally {
-            // LIMPEZA FINAL: Apagar os PDFs parciais (chunks)
-            foreach ($this->chunkPaths as $path) {
-                if (file_exists($path)) {
-                    unlink($path);
-                }
+        }
+    }
+
+    /**
+     * Limpa os arquivos PDFs parciais (chunks) do disco.
+     */
+    protected function limparChunks(): void
+    {
+        foreach ($this->chunkPaths as $path) {
+            if (file_exists($path)) {
+                unlink($path);
             }
         }
+    }
+
+    /**
+     * Handle a job failure.
+     */
+    public function failed(\Throwable $exception): void
+    {
+        Log::error("Job MergePdfsRelatorioJob falhou para relatório #{$this->relatorio->id}: " . $exception->getMessage());
+        
+        $this->relatorio->update([
+            'status' => RelatorioStatus::FALHA,
+            'mensagem_erro' => "Erro no merge final: " . $exception->getMessage()
+        ]);
+
+        if ($this->relatorio->usuario) {
+            $this->relatorio->usuario->notify(new \App\Notifications\RelatorioFalhaNotification($this->relatorio));
+        }
+
+        // LIMPEZA EM CASO DE FALHA DEFINITIVA
+        $this->limparChunks();
     }
 }

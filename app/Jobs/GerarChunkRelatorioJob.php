@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Relatorio;
+use App\Enums\RelatorioStatus;
 use App\Services\RelatorioDataService;
 use App\Services\QuickChartService;
 use App\Services\GotenbergService;
@@ -180,5 +181,22 @@ class GerarChunkRelatorioJob implements ShouldQueue
             'editoras' => 'relatorios.editoras',
             default => throw new \Exception("Tipo de relatório desconhecido: " . $this->relatorio->tipo)
         };
+    }
+
+    /**
+     * Handle a job failure.
+     */
+    public function failed(\Throwable $exception): void
+    {
+        Log::error("Job GerarChunkRelatorioJob (Chunk {$this->chunkIndex}) falhou para relatório #{$this->relatorio->id}: " . $exception->getMessage());
+        
+        $this->relatorio->update([
+            'status' => RelatorioStatus::FALHA,
+            'mensagem_erro' => "Erro ao gerar bloco {$this->chunkIndex}: " . $exception->getMessage()
+        ]);
+
+        if ($this->relatorio->usuario) {
+            $this->relatorio->usuario->notify(new \App\Notifications\RelatorioFalhaNotification($this->relatorio));
+        }
     }
 }

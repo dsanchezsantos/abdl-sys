@@ -95,4 +95,21 @@ class GerarRelatorioJob implements ShouldQueue
             }
         }
     }
+
+    /**
+     * Handle a job failure.
+     */
+    public function failed(\Throwable $exception): void
+    {
+        Log::error("Job GerarRelatorioJob falhou para relatório #{$this->relatorio->id}: " . $exception->getMessage());
+        
+        $this->relatorio->update([
+            'status' => RelatorioStatus::FALHA,
+            'mensagem_erro' => "Erro na orquestração inicial: " . $exception->getMessage()
+        ]);
+
+        if ($this->relatorio->usuario) {
+            $this->relatorio->usuario->notify(new \App\Notifications\RelatorioFalhaNotification($this->relatorio));
+        }
+    }
 }
