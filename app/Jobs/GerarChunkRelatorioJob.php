@@ -23,7 +23,7 @@ class GerarChunkRelatorioJob implements ShouldQueue
     public $tries = 1;
 
     protected $relatorio;
-    protected $sellNumbers;
+    protected $sellNumbers; // Contém tagCodes (se for cartão) ou sellNumbers (se for vendas)
     protected $chunkIndex;
     protected $isFirstPage;
     protected $isLastPage;
@@ -117,31 +117,36 @@ class GerarChunkRelatorioJob implements ShouldQueue
         }
 
         $redis = Redis::connection();
-        $key = "relatorio:{$this->relatorio->id}:sell_numbers";
+        $key = "relatorio:{$this->relatorio->id}:items";
 
         $start = $nextIndex * 100;
         $end = $start + 99;
 
         // Tentar obter apenas a fatia de 100 chaves de forma nativa no Redis
-        $nextSellNumbers = $redis->lrange($key, $start, $end);
+        $nextItems = $redis->lrange($key, $start, $end);
 
         // Fallback caso a lista no Redis tenha sido deletada/expirada (improvável, mas robusto)
-        if (empty($nextSellNumbers)) {
+        if (empty($nextItems)) {
             Log::warning("Chave Redis expirou para o relatório #{$this->relatorio->id}. Recriando a partir do banco de dados.");
-            $allSellNumbers = $dataService->getSellNumbersValidos($this->relatorio->id_feira);
-            
             $redis->del($key);
-            foreach ($allSellNumbers->chunk(1000) as $chunk) {
+
+            if ($this->relatorio->tipo === 'cartao') {
+                $allItems = $dataService->getCartoesValidos($this->relatorio->id_feira);
+            } else {
+                $allItems = $dataService->getSellNumbersValidos($this->relatorio->id_feira);
+            }
+            
+            foreach ($allItems->chunk(1000) as $chunk) {
                 $redis->rpush($key, ...$chunk->values()->toArray());
             }
             $redis->expire($key, 3600);
 
-            $nextSellNumbers = $redis->lrange($key, $start, $end);
+            $nextItems = $redis->lrange($key, $start, $end);
         }
 
         GerarChunkRelatorioJob::dispatch(
             $this->relatorio,
-            $nextSellNumbers,
+            $nextItems,
             $nextIndex,
             false,                                      // isFirstPage
             $nextIndex === ($this->totalChunks - 1),    // isLastPage
@@ -164,8 +169,8 @@ class GerarChunkRelatorioJob implements ShouldQueue
         switch ($this->relatorio->tipo) {
             case 'cartao':
                 if ($this->isFirstPage) {
-                    $data['kpis'] = $dataService->getKpisTransacoes($this->relatorio->id_feira, $this->sellNumbers);
-                    $gastosDiarios = $dataService->getGastosDiarios($this->relatorio->id_feira, $this->sellNumbers);
+                    $data['kpis'] = $dataService->getKpisTransacoes($this->relatorio->id_feira, null);
+                    $gastosDiarios = $dataService->getGastosDiarios($this->relatorio->id_feira, null);
                     
                     $chart = $chartService->gerarBarChartDiario($gastosDiarios['labels'], $gastosDiarios['values']);
                     $chartFiles[] = $chart;
@@ -181,9 +186,9 @@ class GerarChunkRelatorioJob implements ShouldQueue
 
             case 'vendas':
                 if ($this->isFirstPage) {
-                    $data['kpis'] = $dataService->getKpisVendas($this->relatorio->id_feira, $this->sellNumbers);
-                    $vendasDiarias = $dataService->getVendasDiarias($this->relatorio->id_feira, $this->sellNumbers);
-                    $repDiario = $dataService->getVendasDiariasPorRepresentante($this->relatorio->id_feira, $this->sellNumbers);
+                    $data['kpis'] = $dataService->getKpisVendas($this->relatorio->id_feira, null);
+                    $vendasDiarias = $dataService->getVendasDiarias($this->relatorio->id_feira, null);
+                    $repDiario = $dataService->getVendasDiariasPorRepresentante($this->relatorio->id_feira, null);
                     
                     $chart1 = $chartService->gerarBarChartVendasDiarias($vendasDiarias['labels'], $vendasDiarias['values']);
                     $chart2 = $chartService->gerarLineChartRepresentantes($repDiario['labels'], $repDiario['datasets']);
@@ -204,8 +209,8 @@ class GerarChunkRelatorioJob implements ShouldQueue
 
             case 'editoras':
                 if ($this->isFirstPage) {
-                    $data['kpis'] = $dataService->getKpisEditoras($this->relatorio->id_feira, $this->sellNumbers);
-                    $resumo = $dataService->getEditorasResumoComAlocacao($this->relatorio->id_feira, $this->sellNumbers);
+                    $data['kpis'] = $dataService->getKpisEditoras($this->relatorio->id_feira, null);
+                    $resumo = $dataService->getEditorasResumoComAlocacao($this->relatorio->id_feira, null);
                     $data['editorasResumo'] = $resumo;
                     $data['campeas'] = $dataService->getCampeasPorRepresentante($resumo);
                     
@@ -213,7 +218,7 @@ class GerarChunkRelatorioJob implements ShouldQueue
                         'labels' => $resumo->groupBy('representante')->map(fn($g) => $g->first()->representante)->values()->toArray(),
                         'values' => $resumo->groupBy('representante')->map(fn($g) => (float) $g->sum('faturamento_cartao'))->values()->toArray()
                     ];
-                    $evolucao = $dataService->getEvolucaoDiariaPorRepresentante($this->relatorio->id_feira, $this->sellNumbers);
+                    $evolucao = $dataService->getEvolucaoDiariaPorRepresentante($this->relatorio->id_feira, null);
                     
                     $chart1 = $chartService->gerarDonutMarketShare($marketShare['labels'], $marketShare['values']);
                     $chart2 = $chartService->gerarLineChartEvolucaoDiaria($evolucao['labels'], $evolucao['datasets']);
@@ -224,14 +229,14 @@ class GerarChunkRelatorioJob implements ShouldQueue
                     $data['chartMarketShareFilename'] = $chart1['filename'];
                     $data['chartEvolucaoFilename'] = $chart2['filename'];
                 } else {
-                    $data['editorasResumo'] = $dataService->getEditorasResumoComAlocacao($this->relatorio->id_feira, $this->sellNumbers);
+                    $data['editorasResumo'] = $dataService->getEditorasResumoComAlocacao($this->relatorio->id_feira, null);
                 }
 
                 if ($this->isLastPage) {
-                    $data['inconsistencias'] = $dataService->getInconsistenciasCatalogo($this->relatorio->id_feira, $this->sellNumbers);
+                    $data['inconsistencias'] = $dataService->getInconsistenciasCatalogo($this->relatorio->id_feira, null);
                 }
                 
-                $livrosDetalhe = $dataService->getLivrosDetalhePorEditora($this->relatorio->id_feira, $this->sellNumbers)->collect();
+                $livrosDetalhe = $dataService->getLivrosDetalhePorEditora($this->relatorio->id_feira, null)->collect();
 
                 $data['getLivrosPorEditora'] = fn($rep, $cat) => $livrosDetalhe
                     ->filter(fn($l) => $l->representante === $rep && $l->categoria === $cat);
@@ -258,7 +263,10 @@ class GerarChunkRelatorioJob implements ShouldQueue
     {
         Log::error("Job GerarChunkRelatorioJob (Chunk {$this->chunkIndex}) falhou para relatório #{$this->relatorio->id}: " . $exception->getMessage());
         
-        Redis::connection()->del("relatorio:{$this->relatorio->id}:sell_numbers");
+        Redis::connection()->del([
+            "relatorio:{$this->relatorio->id}:sell_numbers",
+            "relatorio:{$this->relatorio->id}:items"
+        ]);
 
         $this->relatorio->update([
             'status' => RelatorioStatus::FALHA,

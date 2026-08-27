@@ -90,7 +90,10 @@ class MergePdfsRelatorioJob implements ShouldQueue
         } finally {
             // LIMPEZA EM CASO DE SUCESSO OU FALHA: Apagar os PDFs parciais (chunks) e lista do Redis
             $this->limparChunks($chunkPaths);
-            Redis::connection()->del("relatorio:{$this->relatorio->id}:sell_numbers");
+            Redis::connection()->del([
+                "relatorio:{$this->relatorio->id}:sell_numbers",
+                "relatorio:{$this->relatorio->id}:items"
+            ]);
         }
     }
 
@@ -128,6 +131,9 @@ class MergePdfsRelatorioJob implements ShouldQueue
             $chunkPaths[] = storage_path("app/temp/relatorio_{$this->relatorio->id}_chunk_{$i}.pdf");
         }
         $this->limparChunks($chunkPaths);
-        Redis::connection()->del("relatorio:{$this->relatorio->id}:sell_numbers");
+        Redis::connection()->del([
+            "relatorio:{$this->relatorio->id}:sell_numbers",
+            "relatorio:{$this->relatorio->id}:items"
+        ]);
     }
 }

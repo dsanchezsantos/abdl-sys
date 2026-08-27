@@ -47,30 +47,9 @@ class GerarRelatorioJob implements ShouldQueue
         try {
             $this->relatorio->update(['status' => RelatorioStatus::PROCESSANDO]);
 
-            $sellNumbers = $dataService->getSellNumbersValidos($this->relatorio->id_feira);
-            
-            if ($sellNumbers->isEmpty()) {
-                $this->relatorio->update([
-                    'status' => RelatorioStatus::FALHA,
-                    'mensagem_erro' => 'Nenhuma venda válida encontrada para os critérios do Filtro de Ouro.'
-                ]);
-                return;
-            }
-
-            // Chunking Strategy: 100 vendas por PDF parcial
-            $chunks = $sellNumbers->chunk(100);
-            $totalChunks = $chunks->count();
-
-            // Salvar no Redis nativo como lista (RPUSH) com expiração de 1 hora
             $redis = Redis::connection();
-            $key = "relatorio:{$this->relatorio->id}:sell_numbers";
+            $key = "relatorio:{$this->relatorio->id}:items";
             $redis->del($key);
-
-            // Gravar em fatias de 1000 itens para evitar limites de argumentos de função do PHP/Redis
-            foreach ($sellNumbers->chunk(1000) as $chunk) {
-                $redis->rpush($key, ...$chunk->values()->toArray());
-            }
-            $redis->expire($key, 3600);
 
             // Garantir diretório temp
             $tempDir = storage_path('app/temp');
@@ -78,24 +57,92 @@ class GerarRelatorioJob implements ShouldQueue
                 mkdir($tempDir, 0775, true);
             }
 
-            // Despachar o primeiro chunk de forma extremamente leve
-            $firstChunk = $chunks->first();
-            GerarChunkRelatorioJob::dispatch(
-                $this->relatorio,
-                $firstChunk->toArray(),
-                0,                  // chunkIndex
-                true,               // isFirstPage
-                $totalChunks === 1, // isLastPage
-                $totalChunks
-            );
+            if ($this->relatorio->tipo === 'cartao') {
+                // Estratégia de Cartões: Paginar por tag_code
+                $tagCodes = $dataService->getCartoesValidos($this->relatorio->id_feira);
+                
+                if ($tagCodes->isEmpty()) {
+                    $this->relatorio->update([
+                        'status' => RelatorioStatus::FALHA,
+                        'mensagem_erro' => 'Nenhum cartão válido encontrado para os critérios do Filtro de Ouro.'
+                    ]);
+                    return;
+                }
 
-            Log::info("Pipeline de relatório #{$this->relatorio->id} iniciado com {$totalChunks} chunks (despacho sequencial otimizado com Redis nativo).");
+                $chunks = $tagCodes->chunk(100);
+                $totalChunks = $chunks->count();
+
+                // Gravar os tag_codes no Redis
+                foreach ($tagCodes->chunk(1000) as $chunk) {
+                    $redis->rpush($key, ...$chunk->values()->toArray());
+                }
+                $redis->expire($key, 3600);
+
+                // Primeiro chunk
+                $firstChunk = $chunks->first();
+                GerarChunkRelatorioJob::dispatch(
+                    $this->relatorio,
+                    $firstChunk->toArray(),
+                    0,                  // chunkIndex
+                    true,               // isFirstPage
+                    $totalChunks === 1, // isLastPage
+                    $totalChunks
+                );
+
+                Log::info("Pipeline de relatório de cartões #{$this->relatorio->id} iniciado com {$totalChunks} chunks.");
+
+            } elseif ($this->relatorio->tipo === 'vendas') {
+                // Estratégia de Vendas: Paginar por sell_number
+                $sellNumbers = $dataService->getSellNumbersValidos($this->relatorio->id_feira);
+
+                if ($sellNumbers->isEmpty()) {
+                    $this->relatorio->update([
+                        'status' => RelatorioStatus::FALHA,
+                        'mensagem_erro' => 'Nenhuma venda válida encontrada para os critérios do Filtro de Ouro.'
+                    ]);
+                    return;
+                }
+
+                $chunks = $sellNumbers->chunk(100);
+                $totalChunks = $chunks->count();
+
+                // Gravar os sell_numbers no Redis
+                foreach ($sellNumbers->chunk(1000) as $chunk) {
+                    $redis->rpush($key, ...$chunk->values()->toArray());
+                }
+                $redis->expire($key, 3600);
+
+                // Primeiro chunk
+                $firstChunk = $chunks->first();
+                GerarChunkRelatorioJob::dispatch(
+                    $this->relatorio,
+                    $firstChunk->toArray(),
+                    0,                  // chunkIndex
+                    true,               // isFirstPage
+                    $totalChunks === 1, // isLastPage
+                    $totalChunks
+                );
+
+                Log::info("Pipeline de relatório de vendas #{$this->relatorio->id} iniciado com {$totalChunks} chunks.");
+
+            } elseif ($this->relatorio->tipo === 'editoras') {
+                // Estratégia de Editoras: Sem fatiamento (1 único chunk geral consolidado)
+                GerarChunkRelatorioJob::dispatch(
+                    $this->relatorio,
+                    [],                 // sellNumbers/tagCodes não necessários
+                    0,                  // chunkIndex
+                    true,               // isFirstPage
+                    true,               // isLastPage (é o único)
+                    1                   // totalChunks
+                );
+
+                Log::info("Pipeline de relatório de editoras #{$this->relatorio->id} iniciado como único chunk consolidado.");
+            }
 
         } catch (\Throwable $e) {
             Log::error("Falha ao orquestrar relatório #{$this->relatorio->id}: " . $e->getMessage());
             
-            // Limpar lista do Redis em caso de erro na orquestração inicial
-            Redis::connection()->del("relatorio:{$this->relatorio->id}:sell_numbers");
+            Redis::connection()->del("relatorio:{$this->relatorio->id}:items");
 
             $this->relatorio->update([
                 'status' => RelatorioStatus::FALHA,
@@ -115,7 +162,7 @@ class GerarRelatorioJob implements ShouldQueue
     {
         Log::error("Job GerarRelatorioJob falhou para relatório #{$this->relatorio->id}: " . $exception->getMessage());
         
-        Redis::connection()->del("relatorio:{$this->relatorio->id}:sell_numbers");
+        Redis::connection()->del("relatorio:{$this->relatorio->id}:items");
 
         $this->relatorio->update([
             'status' => RelatorioStatus::FALHA,
