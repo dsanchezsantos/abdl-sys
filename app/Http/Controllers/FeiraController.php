@@ -113,6 +113,12 @@ class FeiraController extends Controller
             ]);
         }
 
+        if (count($rows) <= 1) {
+            throw ValidationException::withMessages([
+                'file' => ['O arquivo não possui registros de dados além do cabeçalho.'],
+            ]);
+        }
+
         // Ler cabeçalho
         $header = array_map(function($h) {
             return trim(strtolower($h));
@@ -130,7 +136,7 @@ class FeiraController extends Controller
 
         if ($editoraIdx === false || $representanteIdx === false) {
             throw ValidationException::withMessages([
-                'file' => ['As colunas do arquivo devem conter obrigatoriamente os cabeçalhos: "editoras" e "representante".'],
+                'file' => ['As colunas do arquivo devem conter obrigatoriamente os cabeçalhos: "editora" e "representante".'],
             ]);
         }
 
@@ -146,6 +152,12 @@ class FeiraController extends Controller
                 );
                 $count++;
             }
+        }
+
+        if ($count === 0) {
+            throw ValidationException::withMessages([
+                'file' => ['Nenhum registro válido foi encontrado para importação. Verifique se o arquivo segue o modelo esperado.'],
+            ]);
         }
 
         return back()->with('success', "$count registros de Editora e Representante importados com sucesso!");

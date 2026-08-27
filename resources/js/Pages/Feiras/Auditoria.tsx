@@ -59,6 +59,28 @@ export default function Auditoria({ feira, estatisticas, ultimas_vendas, editora
         }
     };
 
+    const downloadTemplate = () => {
+        const headers = ['editora', 'representante'];
+        const rows = [
+            ['Exemplo Editora', 'Exemplo Representante'],
+        ];
+        
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.join(','))
+        ].join('\n');
+
+        // Adiciona o BOM UTF-8 (\uFEFF) para o Excel abrir com caracteres corretos (acentuação, etc.)
+        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "modelo_importacao_editoras.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const handleImport = (e: React.FormEvent) => {
         e.preventDefault();
         if (!importFile) return;
@@ -66,20 +88,58 @@ export default function Auditoria({ feira, estatisticas, ultimas_vendas, editora
         setIsImporting(true);
         setImportError('');
 
-        const formData = new FormData();
-        formData.append('file', importFile);
+        const proceedWithUpload = () => {
+            const formData = new FormData();
+            formData.append('file', importFile);
 
-        router.post(route('feiras.editoras.import', feira.id), formData as any, {
-            preserveScroll: true,
-            onSuccess: () => {
-                setImportFile(null);
+            router.post(route('feiras.editoras.import', feira.id), formData as any, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setImportFile(null);
+                    setIsImporting(false);
+                },
+                onError: (err) => {
+                    setImportError(err.file || 'Erro ao importar arquivo.');
+                    setIsImporting(false);
+                }
+            });
+        };
+
+        // Se for CSV, fazemos uma pré-validação rápida no client-side
+        if (importFile.name.toLowerCase().endsWith('.csv')) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const text = event.target?.result as string;
+                if (!text || text.trim() === '') {
+                    setImportError('O arquivo está vazio.');
+                    setIsImporting(false);
+                    return;
+                }
+                const firstLine = text.split('\n')[0] || '';
+                const headers = firstLine.split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+                const headersSemicolon = firstLine.split(';').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+                
+                const hasEditora = headers.includes('editora') || headers.includes('editoras') || 
+                                   headersSemicolon.includes('editora') || headersSemicolon.includes('editoras');
+                const hasRepresentante = headers.includes('representante') || headers.includes('representantes') ||
+                                         headersSemicolon.includes('representante') || headersSemicolon.includes('representantes');
+
+                if (!hasEditora || !hasRepresentante) {
+                    setImportError('Estrutura inválida. O arquivo deve conter obrigatoriamente as colunas "editora" e "representante".');
+                    setIsImporting(false);
+                    return;
+                }
+
+                proceedWithUpload();
+            };
+            reader.onerror = () => {
+                setImportError('Erro ao ler o arquivo para validação.');
                 setIsImporting(false);
-            },
-            onError: (err) => {
-                setImportError(err.file || 'Erro ao importar arquivo.');
-                setIsImporting(false);
-            }
-        });
+            };
+            reader.readAsText(importFile);
+        } else {
+            proceedWithUpload();
+        }
     };
 
     const filteredEditorasReps = (editoras_representantes || []).filter(er => 
@@ -536,7 +596,18 @@ export default function Auditoria({ feira, estatisticas, ultimas_vendas, editora
 
                         {/* Importação CSV/XLSX */}
                         <div className="border-t border-slate-100 pt-6">
-                            <span className="text-xs font-bold text-primary uppercase tracking-wider block mb-3">Importar Planilha</span>
+                            <div className="flex items-center justify-between mb-3">
+                                <span className="text-xs font-bold text-primary uppercase tracking-wider">Importar Planilha</span>
+                                <button
+                                    type="button"
+                                    onClick={downloadTemplate}
+                                    className="text-[10px] font-bold text-primary/60 hover:text-primary flex items-center gap-0.5 hover:underline"
+                                    title="Baixar modelo de CSV"
+                                >
+                                    <span className="material-symbols-outlined text-xs">download</span>
+                                    Modelo CSV
+                                </button>
+                            </div>
                             <form onSubmit={handleImport} className="space-y-3">
                                 <label className="flex flex-col items-center justify-center border-2 border-dashed border-primary/20 hover:border-primary/40 rounded-xl p-4 cursor-pointer hover:bg-primary/5 transition-all text-center">
                                     <span className="material-symbols-outlined text-primary text-2xl mb-1">upload_file</span>
