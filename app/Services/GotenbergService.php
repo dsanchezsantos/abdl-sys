@@ -89,17 +89,33 @@ class GotenbergService
     public function mergePdfs(array $pdfPaths): string
     {
         $request = Http::timeout(290)->asMultipart();
+        $handles = [];
 
-        foreach ($pdfPaths as $index => $path) {
-            if (!file_exists($path)) {
-                throw new \RuntimeException("Chunk PDF não encontrado para merge: {$path}");
+        try {
+            foreach ($pdfPaths as $index => $path) {
+                if (!file_exists($path)) {
+                    throw new \RuntimeException("Chunk PDF não encontrado para merge: {$path}");
+                }
+                // Nomes ordenados numericamente para garantir a sequência correta no merge
+                $filename = str_pad($index, 5, '0', STR_PAD_LEFT) . '_chunk.pdf';
+                
+                $handle = fopen($path, 'r');
+                if ($handle === false) {
+                    throw new \RuntimeException("Não foi possível abrir o chunk PDF para leitura: {$path}");
+                }
+                $handles[] = $handle;
+                
+                $request = $request->attach('files', $handle, $filename);
             }
-            // Nomes ordenados numericamente para garantir a sequência correta no merge
-            $filename = str_pad($index, 5, '0', STR_PAD_LEFT) . '_chunk.pdf';
-            $request  = $request->attach('files', file_get_contents($path), $filename);
-        }
 
-        $response = $request->post("{$this->baseUrl}/forms/pdfengines/merge");
+            $response = $request->post("{$this->baseUrl}/forms/pdfengines/merge");
+        } finally {
+            foreach ($handles as $handle) {
+                if (is_resource($handle)) {
+                    fclose($handle);
+                }
+            }
+        }
 
         if ($response->failed()) {
             Log::error('Gotenberg mergePdfs falhou', [
