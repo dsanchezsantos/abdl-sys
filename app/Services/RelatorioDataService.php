@@ -215,6 +215,45 @@ class RelatorioDataService
             ->get();
     }
 
+    /**
+     * Otimização Anti-N+1: Retorna todas as transações para os sell_numbers do chunk agrupados.
+     */
+    public function getTransacoesPorCartaoChunk(int $feiraId, array $sellNumbers): \Illuminate\Support\Collection
+    {
+        return DB::table('pagamentos as p')
+            ->join('venda_headers as vh', function ($join) {
+                $join->on('p.sell_number', '=', 'vh.sell_number')
+                     ->on('p.id_feira', '=', 'vh.id_feira');
+            })
+            ->join('cartoes as c', function ($join) {
+                $join->on('p.tag_code', '=', 'c.tag_code')
+                     ->on('p.id_feira', '=', 'c.id_feira');
+            })
+            ->leftJoin(DB::raw('(
+                SELECT iv.sell_number, STRING_AGG(DISTINCT iv.name, \', \') AS livros
+                FROM itens_venda iv
+                WHERE iv.id_feira = ' . $feiraId . '
+                GROUP BY iv.sell_number
+            ) AS itens_agg'), 'p.sell_number', '=', 'itens_agg.sell_number')
+            ->whereIn('p.sell_number', $sellNumbers)
+            ->where('p.id_feira', $feiraId)
+            ->whereRaw('UPPER(p.payment_way) NOT LIKE ?', ['%DESCONTO%'])
+            ->whereRaw('UPPER(p.payment_group) NOT LIKE ?', ['%PAGAMENTO SEM GRUPO%'])
+            ->where('c.classificacao', '!=', \App\Enums\CartaoClassificacao::TESTE->value)
+            ->selectRaw("
+                p.tag_code      AS tag_code,
+                vh.date_hour    AS data_hora,
+                p.sell_number   AS venda,
+                vh.box          AS caixa,
+                COALESCE(itens_agg.livros, 'N/A') AS livros,
+                '1C'            AS uso_cartoes,
+                p.value::numeric AS valor
+            ")
+            ->orderBy('vh.date_hour')
+            ->get();
+    }
+
+
     // =========================================================================
     // RELATÓRIO 2: VENDAS AGRUPADAS
     // Réplica do Python: vd, df_pag_todos = preparar_tabelas_para_pdfs()[2,3]
@@ -393,6 +432,33 @@ class RelatorioDataService
             ')
             ->get();
     }
+
+    /**
+     * Otimização Anti-N+1: Retorna todos os pagamentos para os sell_numbers do chunk agrupados.
+     */
+    public function getPagamentosPorVendasChunk(int $feiraId, array $sellNumbers): \Illuminate\Support\Collection
+    {
+        return DB::table('pagamentos as p')
+            ->join('cartoes as c', function ($join) {
+                $join->on('p.tag_code', '=', 'c.tag_code')
+                     ->on('p.id_feira', '=', 'c.id_feira');
+            })
+            ->whereIn('p.sell_number', $sellNumbers)
+            ->where('p.id_feira', $feiraId)
+            ->whereRaw('UPPER(p.payment_way) NOT LIKE ?', ['%DESCONTO%'])
+            ->whereRaw('UPPER(p.payment_group) NOT LIKE ?', ['%PAGAMENTO SEM GRUPO%'])
+            ->where('c.classificacao', '!=', \App\Enums\CartaoClassificacao::TESTE->value)
+            ->selectRaw('
+                p.sell_number,
+                p.payment_way,
+                p.tag_code,
+                p.payment_group,
+                c.classificacao,
+                p.value::numeric AS valor
+            ')
+            ->get();
+    }
+
 
     // =========================================================================
     // RELATÓRIO 3: EDITORAS / REPRESENTANTES (com Alocação Proporcional)

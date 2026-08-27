@@ -205,9 +205,9 @@ return [
             'maxProcesses' => 1,
             'maxTime' => 0,
             'maxJobs' => 0,
-            'memory' => 128,
+            'memory' => 256,
             'tries' => 1,
-            'timeout' => 3600,
+            'timeout' => 3500,
             'nice' => 0,
         ],
         'supervisor-nowigo' => [

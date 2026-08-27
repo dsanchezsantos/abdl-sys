@@ -18,7 +18,7 @@ class GerarChunkRelatorioJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $timeout = 3600;
+    public $timeout = 600;
     public $tries = 1;
 
     protected $relatorio;
@@ -112,8 +112,11 @@ class GerarChunkRelatorioJob implements ShouldQueue
                     $data['chartDiarioFilename'] = $chart['filename'];
                 }
                 
+                $transacoes = $dataService->getTransacoesPorCartaoChunk($this->relatorio->id_feira, $this->sellNumbers)
+                    ->groupBy('tag_code');
+
                 $data['cartoes'] = $dataService->getCartoesDetalhamento($this->relatorio->id_feira, $this->sellNumbers);
-                $data['getTransacoes'] = fn($tag) => $dataService->getTransacoesPorCartao($this->relatorio->id_feira, $tag, $this->sellNumbers);
+                $data['getTransacoes'] = fn($tag) => $transacoes->get($tag, collect());
                 break;
 
             case 'vendas':
@@ -132,8 +135,11 @@ class GerarChunkRelatorioJob implements ShouldQueue
                     $data['chartRepresentantesFilename'] = $chart2['filename'];
                 }
                 
+                $pagamentos = $dataService->getPagamentosPorVendasChunk($this->relatorio->id_feira, $this->sellNumbers)
+                    ->groupBy('sell_number');
+
                 $data['vendas'] = $dataService->getVendasDetalhamento($this->relatorio->id_feira, $this->sellNumbers);
-                $data['getPagamentos'] = fn($sell) => $dataService->getPagamentosPorVenda($this->relatorio->id_feira, $sell);
+                $data['getPagamentos'] = fn($sell) => $pagamentos->get($sell, collect());
                 break;
 
             case 'editoras':
@@ -166,7 +172,9 @@ class GerarChunkRelatorioJob implements ShouldQueue
                     $data['inconsistencias'] = $dataService->getInconsistenciasCatalogo($this->relatorio->id_feira, $this->sellNumbers);
                 }
                 
-                $data['getLivrosPorEditora'] = fn($rep, $cat) => $dataService->getLivrosDetalhePorEditora($this->relatorio->id_feira, $this->sellNumbers)
+                $livrosDetalhe = $dataService->getLivrosDetalhePorEditora($this->relatorio->id_feira, $this->sellNumbers)->collect();
+
+                $data['getLivrosPorEditora'] = fn($rep, $cat) => $livrosDetalhe
                     ->filter(fn($l) => $l->representante === $rep && $l->categoria === $cat);
                 break;
         }

@@ -18,9 +18,9 @@ class GerarRelatorioJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * O timeout do job (1 hora para relatórios massivos).
+     * O timeout do job.
      */
-    public $timeout = 3600;
+    public $timeout = 300;
 
     /**
      * O número de tentativas permitidas para o job.
@@ -55,8 +55,8 @@ class GerarRelatorioJob implements ShouldQueue
                 return;
             }
 
-            // Chunking Strategy: 500 vendas por PDF parcial
-            $chunks = $sellNumbers->chunk(500);
+            // Chunking Strategy: 100 vendas por PDF parcial (otimizado para evitar estouro de memória no PHP e no Gotenberg)
+            $chunks = $sellNumbers->chunk(100);
             $jobs = [];
             $chunkPaths = [];
 
