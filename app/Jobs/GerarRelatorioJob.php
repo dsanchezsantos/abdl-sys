@@ -10,7 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Log;
 
 class GerarRelatorioJob implements ShouldQueue
@@ -42,6 +42,8 @@ class GerarRelatorioJob implements ShouldQueue
      */
     public function handle(RelatorioDataService $dataService): void
     {
+        ini_set('memory_limit', '512M');
+
         try {
             $this->relatorio->update(['status' => RelatorioStatus::PROCESSANDO]);
 
@@ -59,12 +61,16 @@ class GerarRelatorioJob implements ShouldQueue
             $chunks = $sellNumbers->chunk(100);
             $totalChunks = $chunks->count();
 
-            // Salvar no Cache do Redis com expiração de 1 hora
-            Cache::put(
-                "relatorio:{$this->relatorio->id}:sell_numbers",
-                $sellNumbers->toArray(),
-                3600
-            );
+            // Salvar no Redis nativo como lista (RPUSH) com expiração de 1 hora
+            $redis = Redis::connection();
+            $key = "relatorio:{$this->relatorio->id}:sell_numbers";
+            $redis->del($key);
+
+            // Gravar em fatias de 1000 itens para evitar limites de argumentos de função do PHP/Redis
+            foreach ($sellNumbers->chunk(1000) as $chunk) {
+                $redis->rpush($key, ...$chunk->values()->toArray());
+            }
+            $redis->expire($key, 3600);
 
             // Garantir diretório temp
             $tempDir = storage_path('app/temp');
@@ -83,13 +89,13 @@ class GerarRelatorioJob implements ShouldQueue
                 $totalChunks
             );
 
-            Log::info("Pipeline de relatório #{$this->relatorio->id} iniciado com {$totalChunks} chunks (despacho sequencial otimizado com cache).");
+            Log::info("Pipeline de relatório #{$this->relatorio->id} iniciado com {$totalChunks} chunks (despacho sequencial otimizado com Redis nativo).");
 
         } catch (\Throwable $e) {
             Log::error("Falha ao orquestrar relatório #{$this->relatorio->id}: " . $e->getMessage());
             
-            // Limpar cache em caso de erro na orquestração inicial
-            Cache::forget("relatorio:{$this->relatorio->id}:sell_numbers");
+            // Limpar lista do Redis em caso de erro na orquestração inicial
+            Redis::connection()->del("relatorio:{$this->relatorio->id}:sell_numbers");
 
             $this->relatorio->update([
                 'status' => RelatorioStatus::FALHA,
@@ -109,7 +115,7 @@ class GerarRelatorioJob implements ShouldQueue
     {
         Log::error("Job GerarRelatorioJob falhou para relatório #{$this->relatorio->id}: " . $exception->getMessage());
         
-        Cache::forget("relatorio:{$this->relatorio->id}:sell_numbers");
+        Redis::connection()->del("relatorio:{$this->relatorio->id}:sell_numbers");
 
         $this->relatorio->update([
             'status' => RelatorioStatus::FALHA,

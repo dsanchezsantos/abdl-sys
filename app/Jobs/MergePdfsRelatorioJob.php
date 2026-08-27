@@ -11,7 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -39,6 +39,8 @@ class MergePdfsRelatorioJob implements ShouldQueue
      */
     public function handle(GotenbergService $gotenberg): void
     {
+        ini_set('memory_limit', '512M');
+
         $startTime = microtime(true);
         $chunkPaths = [];
 
@@ -86,9 +88,9 @@ class MergePdfsRelatorioJob implements ShouldQueue
             }
             throw $e;
         } finally {
-            // LIMPEZA EM CASO DE SUCESSO OU FALHA: Apagar os PDFs parciais (chunks) e cache
+            // LIMPEZA EM CASO DE SUCESSO OU FALHA: Apagar os PDFs parciais (chunks) e lista do Redis
             $this->limparChunks($chunkPaths);
-            Cache::forget("relatorio:{$this->relatorio->id}:sell_numbers");
+            Redis::connection()->del("relatorio:{$this->relatorio->id}:sell_numbers");
         }
     }
 
@@ -126,6 +128,6 @@ class MergePdfsRelatorioJob implements ShouldQueue
             $chunkPaths[] = storage_path("app/temp/relatorio_{$this->relatorio->id}_chunk_{$i}.pdf");
         }
         $this->limparChunks($chunkPaths);
-        Cache::forget("relatorio:{$this->relatorio->id}:sell_numbers");
+        Redis::connection()->del("relatorio:{$this->relatorio->id}:sell_numbers");
     }
 }

@@ -12,7 +12,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Log;
 
 class GerarChunkRelatorioJob implements ShouldQueue
@@ -56,6 +56,8 @@ class GerarChunkRelatorioJob implements ShouldQueue
         QuickChartService $chartService,
         GotenbergService $gotenberg
     ): void {
+        ini_set('memory_limit', '512M');
+
         $chartFiles = [];
         $savePath = storage_path("app/temp/relatorio_{$this->relatorio->id}_chunk_{$this->chunkIndex}.pdf");
 
@@ -114,22 +116,28 @@ class GerarChunkRelatorioJob implements ShouldQueue
             return;
         }
 
-        // Tentar obter sellNumbers do cache
-        $allSellNumbers = Cache::get("relatorio:{$this->relatorio->id}:sell_numbers");
+        $redis = Redis::connection();
+        $key = "relatorio:{$this->relatorio->id}:sell_numbers";
 
-        // Fallback caso o cache tenha expirado (improvável, mas robusto)
-        if (!$allSellNumbers) {
-            Log::warning("Cache expirou para o relatório #{$this->relatorio->id}. Recriando cache a partir do banco de dados.");
-            $allSellNumbers = $dataService->getSellNumbersValidos($this->relatorio->id_feira)->toArray();
-            Cache::put(
-                "relatorio:{$this->relatorio->id}:sell_numbers",
-                $allSellNumbers,
-                3600
-            );
+        $start = $nextIndex * 100;
+        $end = $start + 99;
+
+        // Tentar obter apenas a fatia de 100 chaves de forma nativa no Redis
+        $nextSellNumbers = $redis->lrange($key, $start, $end);
+
+        // Fallback caso a lista no Redis tenha sido deletada/expirada (improvável, mas robusto)
+        if (empty($nextSellNumbers)) {
+            Log::warning("Chave Redis expirou para o relatório #{$this->relatorio->id}. Recriando a partir do banco de dados.");
+            $allSellNumbers = $dataService->getSellNumbersValidos($this->relatorio->id_feira);
+            
+            $redis->del($key);
+            foreach ($allSellNumbers->chunk(1000) as $chunk) {
+                $redis->rpush($key, ...$chunk->values()->toArray());
+            }
+            $redis->expire($key, 3600);
+
+            $nextSellNumbers = $redis->lrange($key, $start, $end);
         }
-
-        $allSell = collect($allSellNumbers);
-        $nextSellNumbers = $allSell->slice($nextIndex * 100, 100)->values()->toArray();
 
         GerarChunkRelatorioJob::dispatch(
             $this->relatorio,
@@ -250,7 +258,7 @@ class GerarChunkRelatorioJob implements ShouldQueue
     {
         Log::error("Job GerarChunkRelatorioJob (Chunk {$this->chunkIndex}) falhou para relatório #{$this->relatorio->id}: " . $exception->getMessage());
         
-        Cache::forget("relatorio:{$this->relatorio->id}:sell_numbers");
+        Redis::connection()->del("relatorio:{$this->relatorio->id}:sell_numbers");
 
         $this->relatorio->update([
             'status' => RelatorioStatus::FALHA,
