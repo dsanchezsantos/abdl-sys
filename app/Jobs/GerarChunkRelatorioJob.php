@@ -12,6 +12,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class GerarChunkRelatorioJob implements ShouldQueue
@@ -26,15 +27,7 @@ class GerarChunkRelatorioJob implements ShouldQueue
     protected $chunkIndex;
     protected $isFirstPage;
     protected $isLastPage;
-    protected $savePath;
-
-    /**
-     * Metadados para o despacho sequencial (substituindo Bus::chain).
-     * Cada job carrega apenas o mínimo necessário para despachar o próximo.
-     */
     protected $totalChunks;
-    protected $allChunkPaths;
-    protected $allSellNumbers;
 
     /**
      * Create a new job instance.
@@ -45,20 +38,14 @@ class GerarChunkRelatorioJob implements ShouldQueue
         int $chunkIndex,
         bool $isFirstPage,
         bool $isLastPage,
-        string $savePath,
-        int $totalChunks,
-        array $allChunkPaths,
-        array $allSellNumbers
+        int $totalChunks
     ) {
         $this->relatorio = $relatorio;
         $this->sellNumbers = $sellNumbers;
         $this->chunkIndex = $chunkIndex;
         $this->isFirstPage = $isFirstPage;
         $this->isLastPage = $isLastPage;
-        $this->savePath = $savePath;
         $this->totalChunks = $totalChunks;
-        $this->allChunkPaths = $allChunkPaths;
-        $this->allSellNumbers = $allSellNumbers;
     }
 
     /**
@@ -70,6 +57,7 @@ class GerarChunkRelatorioJob implements ShouldQueue
         GotenbergService $gotenberg
     ): void {
         $chartFiles = [];
+        $savePath = storage_path("app/temp/relatorio_{$this->relatorio->id}_chunk_{$this->chunkIndex}.pdf");
 
         try {
             // 1. Coleta de Dados via Service
@@ -98,10 +86,10 @@ class GerarChunkRelatorioJob implements ShouldQueue
             $pdfContent = $gotenberg->htmlToPdf($html, $attachments, 'Landscape', $headerHtml, $footerHtml);
 
             // 5. Persistência do Chunk
-            file_put_contents($this->savePath, $pdfContent);
+            file_put_contents($savePath, $pdfContent);
 
             // 6. Despacho sequencial: disparar o próximo chunk OU o merge final
-            $this->dispatchNext();
+            $this->dispatchNext($dataService);
 
         } catch (\Throwable $e) {
             Log::error("Erro no chunk {$this->chunkIndex} do relatório #{$this->relatorio->id}: " . $e->getMessage());
@@ -113,34 +101,43 @@ class GerarChunkRelatorioJob implements ShouldQueue
     }
 
     /**
-     * Despacha o próximo job na sequência.
-     * Substitui Bus::chain — cada job carrega apenas seus próprios dados no Redis.
+     * Despacha o próximo job na sequência ou inicia o merge de PDFs.
      */
-    private function dispatchNext(): void
+    private function dispatchNext(RelatorioDataService $dataService): void
     {
         $nextIndex = $this->chunkIndex + 1;
 
         if ($nextIndex >= $this->totalChunks) {
             // Todos os chunks concluídos → Despachar o Merge final
             Log::info("Todos os {$this->totalChunks} chunks do relatório #{$this->relatorio->id} concluídos. Despachando merge.");
-            MergePdfsRelatorioJob::dispatch($this->relatorio, $this->allChunkPaths);
+            MergePdfsRelatorioJob::dispatch($this->relatorio, $this->totalChunks);
             return;
         }
 
-        // Extrair os sellNumbers do próximo chunk (slice de 100 a partir da posição correta)
-        $allSell = collect($this->allSellNumbers);
+        // Tentar obter sellNumbers do cache
+        $allSellNumbers = Cache::get("relatorio:{$this->relatorio->id}:sell_numbers");
+
+        // Fallback caso o cache tenha expirado (improvável, mas robusto)
+        if (!$allSellNumbers) {
+            Log::warning("Cache expirou para o relatório #{$this->relatorio->id}. Recriando cache a partir do banco de dados.");
+            $allSellNumbers = $dataService->getSellNumbersValidos($this->relatorio->id_feira)->toArray();
+            Cache::put(
+                "relatorio:{$this->relatorio->id}:sell_numbers",
+                $allSellNumbers,
+                3600
+            );
+        }
+
+        $allSell = collect($allSellNumbers);
         $nextSellNumbers = $allSell->slice($nextIndex * 100, 100)->values()->toArray();
 
         GerarChunkRelatorioJob::dispatch(
             $this->relatorio,
             $nextSellNumbers,
             $nextIndex,
-            false,                                      // isFirstPage (sempre false após o primeiro)
+            false,                                      // isFirstPage
             $nextIndex === ($this->totalChunks - 1),    // isLastPage
-            $this->allChunkPaths[$nextIndex],
-            $this->totalChunks,
-            $this->allChunkPaths,
-            $this->allSellNumbers
+            $this->totalChunks
         );
     }
 
@@ -219,7 +216,6 @@ class GerarChunkRelatorioJob implements ShouldQueue
                     $data['chartMarketShareFilename'] = $chart1['filename'];
                     $data['chartEvolucaoFilename'] = $chart2['filename'];
                 } else {
-                    // For chunks > 0, we still need the base summary to know the representatives
                     $data['editorasResumo'] = $dataService->getEditorasResumoComAlocacao($this->relatorio->id_feira, $this->sellNumbers);
                 }
 
@@ -254,6 +250,8 @@ class GerarChunkRelatorioJob implements ShouldQueue
     {
         Log::error("Job GerarChunkRelatorioJob (Chunk {$this->chunkIndex}) falhou para relatório #{$this->relatorio->id}: " . $exception->getMessage());
         
+        Cache::forget("relatorio:{$this->relatorio->id}:sell_numbers");
+
         $this->relatorio->update([
             'status' => RelatorioStatus::FALHA,
             'mensagem_erro' => "Erro ao gerar bloco {$this->chunkIndex}: " . $exception->getMessage()

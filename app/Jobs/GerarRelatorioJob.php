@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class GerarRelatorioJob implements ShouldQueue
@@ -38,11 +39,6 @@ class GerarRelatorioJob implements ShouldQueue
 
     /**
      * Execute the job.
-     *
-     * Estratégia de despacho sequencial: em vez de usar Bus::chain (que serializa
-     * a cadeia inteira de 800+ jobs dentro do payload de cada job, causando payloads
-     * de vários MB no Redis e travamentos silenciosos), cada GerarChunkRelatorioJob
-     * recebe apenas seus próprios dados e despacha o próximo bloco ao concluir.
      */
     public function handle(RelatorioDataService $dataService): void
     {
@@ -62,14 +58,13 @@ class GerarRelatorioJob implements ShouldQueue
             // Chunking Strategy: 100 vendas por PDF parcial
             $chunks = $sellNumbers->chunk(100);
             $totalChunks = $chunks->count();
-            $chunkPaths = [];
 
-            // Pré-calcular todos os caminhos dos chunks para o Merge final
-            foreach ($chunks as $index => $chunk) {
-                $chunkFilename = "relatorio_{$this->relatorio->id}_chunk_{$index}.pdf";
-                $chunkPath = storage_path("app/temp/{$chunkFilename}");
-                $chunkPaths[] = $chunkPath;
-            }
+            // Salvar no Cache do Redis com expiração de 1 hora
+            Cache::put(
+                "relatorio:{$this->relatorio->id}:sell_numbers",
+                $sellNumbers->toArray(),
+                3600
+            );
 
             // Garantir diretório temp
             $tempDir = storage_path('app/temp');
@@ -77,24 +72,25 @@ class GerarRelatorioJob implements ShouldQueue
                 mkdir($tempDir, 0775, true);
             }
 
-            // Despachar apenas o PRIMEIRO chunk. Ele despachará o próximo ao concluir.
+            // Despachar o primeiro chunk de forma extremamente leve
             $firstChunk = $chunks->first();
             GerarChunkRelatorioJob::dispatch(
                 $this->relatorio,
                 $firstChunk->toArray(),
                 0,                  // chunkIndex
                 true,               // isFirstPage
-                $totalChunks === 1, // isLastPage (caso raro: apenas 1 chunk)
-                $chunkPaths[0],
-                $totalChunks,
-                $chunkPaths,
-                $sellNumbers->toArray()
+                $totalChunks === 1, // isLastPage
+                $totalChunks
             );
 
-            Log::info("Pipeline de relatório #{$this->relatorio->id} iniciado com {$totalChunks} chunks (despacho sequencial).");
+            Log::info("Pipeline de relatório #{$this->relatorio->id} iniciado com {$totalChunks} chunks (despacho sequencial otimizado com cache).");
 
         } catch (\Throwable $e) {
             Log::error("Falha ao orquestrar relatório #{$this->relatorio->id}: " . $e->getMessage());
+            
+            // Limpar cache em caso de erro na orquestração inicial
+            Cache::forget("relatorio:{$this->relatorio->id}:sell_numbers");
+
             $this->relatorio->update([
                 'status' => RelatorioStatus::FALHA,
                 'mensagem_erro' => "Erro na orquestração: " . $e->getMessage()
@@ -113,6 +109,8 @@ class GerarRelatorioJob implements ShouldQueue
     {
         Log::error("Job GerarRelatorioJob falhou para relatório #{$this->relatorio->id}: " . $exception->getMessage());
         
+        Cache::forget("relatorio:{$this->relatorio->id}:sell_numbers");
+
         $this->relatorio->update([
             'status' => RelatorioStatus::FALHA,
             'mensagem_erro' => "Erro na orquestração inicial: " . $exception->getMessage()

@@ -11,6 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -22,15 +23,15 @@ class MergePdfsRelatorioJob implements ShouldQueue
     public $tries = 1;
 
     protected $relatorio;
-    protected $chunkPaths;
+    protected $totalChunks;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(Relatorio $relatorio, array $chunkPaths)
+    public function __construct(Relatorio $relatorio, int $totalChunks)
     {
         $this->relatorio = $relatorio;
-        $this->chunkPaths = $chunkPaths;
+        $this->totalChunks = $totalChunks;
     }
 
     /**
@@ -39,12 +40,17 @@ class MergePdfsRelatorioJob implements ShouldQueue
     public function handle(GotenbergService $gotenberg): void
     {
         $startTime = microtime(true);
+        $chunkPaths = [];
+
+        for ($i = 0; $i < $this->totalChunks; $i++) {
+            $chunkPaths[] = storage_path("app/temp/relatorio_{$this->relatorio->id}_chunk_{$i}.pdf");
+        }
 
         try {
-            Log::info("Iniciando Merge de " . count($this->chunkPaths) . " chunks para relatório #{$this->relatorio->id}");
+            Log::info("Iniciando Merge de {$this->totalChunks} chunks determinísticos para relatório #{$this->relatorio->id}");
 
             // 1. Merge via Gotenberg
-            $finalPdfContent = $gotenberg->mergePdfs($this->chunkPaths);
+            $finalPdfContent = $gotenberg->mergePdfs($chunkPaths);
 
             // 2. Salvar no Storage Público (para download)
             $filename = "relatorio_{$this->relatorio->id}_" . now()->format('Ymd_His') . ".pdf";
@@ -68,9 +74,6 @@ class MergePdfsRelatorioJob implements ShouldQueue
 
             Log::info("Relatório #{$this->relatorio->id} finalizado com sucesso. Arquivo: {$storagePath}");
 
-            // LIMPEZA EM CASO DE SUCESSO: Apagar os PDFs parciais (chunks)
-            $this->limparChunks();
-
         } catch (\Throwable $e) {
             Log::error("Erro no Merge do relatório #{$this->relatorio->id}: " . $e->getMessage());
             $this->relatorio->update([
@@ -82,15 +85,19 @@ class MergePdfsRelatorioJob implements ShouldQueue
                 $this->relatorio->usuario->notify(new \App\Notifications\RelatorioFalhaNotification($this->relatorio));
             }
             throw $e;
+        } finally {
+            // LIMPEZA EM CASO DE SUCESSO OU FALHA: Apagar os PDFs parciais (chunks) e cache
+            $this->limparChunks($chunkPaths);
+            Cache::forget("relatorio:{$this->relatorio->id}:sell_numbers");
         }
     }
 
     /**
      * Limpa os arquivos PDFs parciais (chunks) do disco.
      */
-    protected function limparChunks(): void
+    protected function limparChunks(array $chunkPaths): void
     {
-        foreach ($this->chunkPaths as $path) {
+        foreach ($chunkPaths as $path) {
             if (file_exists($path)) {
                 unlink($path);
             }
@@ -114,6 +121,11 @@ class MergePdfsRelatorioJob implements ShouldQueue
         }
 
         // LIMPEZA EM CASO DE FALHA DEFINITIVA
-        $this->limparChunks();
+        $chunkPaths = [];
+        for ($i = 0; $i < $this->totalChunks; $i++) {
+            $chunkPaths[] = storage_path("app/temp/relatorio_{$this->relatorio->id}_chunk_{$i}.pdf");
+        }
+        $this->limparChunks($chunkPaths);
+        Cache::forget("relatorio:{$this->relatorio->id}:sell_numbers");
     }
 }
