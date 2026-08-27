@@ -29,16 +29,36 @@ class GerarChunkRelatorioJob implements ShouldQueue
     protected $savePath;
 
     /**
+     * Metadados para o despacho sequencial (substituindo Bus::chain).
+     * Cada job carrega apenas o mínimo necessário para despachar o próximo.
+     */
+    protected $totalChunks;
+    protected $allChunkPaths;
+    protected $allSellNumbers;
+
+    /**
      * Create a new job instance.
      */
-    public function __construct(Relatorio $relatorio, array $sellNumbers, int $chunkIndex, bool $isFirstPage, bool $isLastPage, string $savePath)
-    {
+    public function __construct(
+        Relatorio $relatorio,
+        array $sellNumbers,
+        int $chunkIndex,
+        bool $isFirstPage,
+        bool $isLastPage,
+        string $savePath,
+        int $totalChunks,
+        array $allChunkPaths,
+        array $allSellNumbers
+    ) {
         $this->relatorio = $relatorio;
         $this->sellNumbers = $sellNumbers;
         $this->chunkIndex = $chunkIndex;
         $this->isFirstPage = $isFirstPage;
         $this->isLastPage = $isLastPage;
         $this->savePath = $savePath;
+        $this->totalChunks = $totalChunks;
+        $this->allChunkPaths = $allChunkPaths;
+        $this->allSellNumbers = $allSellNumbers;
     }
 
     /**
@@ -80,6 +100,9 @@ class GerarChunkRelatorioJob implements ShouldQueue
             // 5. Persistência do Chunk
             file_put_contents($this->savePath, $pdfContent);
 
+            // 6. Despacho sequencial: disparar o próximo chunk OU o merge final
+            $this->dispatchNext();
+
         } catch (\Throwable $e) {
             Log::error("Erro no chunk {$this->chunkIndex} do relatório #{$this->relatorio->id}: " . $e->getMessage());
             throw $e; 
@@ -87,6 +110,38 @@ class GerarChunkRelatorioJob implements ShouldQueue
             // LIMPEZA IMEDIATA DE DISCO: Apenas dos PNGs temporários (sem apagar a logo!)
             $chartService->limparTemporarios($chartFiles);
         }
+    }
+
+    /**
+     * Despacha o próximo job na sequência.
+     * Substitui Bus::chain — cada job carrega apenas seus próprios dados no Redis.
+     */
+    private function dispatchNext(): void
+    {
+        $nextIndex = $this->chunkIndex + 1;
+
+        if ($nextIndex >= $this->totalChunks) {
+            // Todos os chunks concluídos → Despachar o Merge final
+            Log::info("Todos os {$this->totalChunks} chunks do relatório #{$this->relatorio->id} concluídos. Despachando merge.");
+            MergePdfsRelatorioJob::dispatch($this->relatorio, $this->allChunkPaths);
+            return;
+        }
+
+        // Extrair os sellNumbers do próximo chunk (slice de 100 a partir da posição correta)
+        $allSell = collect($this->allSellNumbers);
+        $nextSellNumbers = $allSell->slice($nextIndex * 100, 100)->values()->toArray();
+
+        GerarChunkRelatorioJob::dispatch(
+            $this->relatorio,
+            $nextSellNumbers,
+            $nextIndex,
+            false,                                      // isFirstPage (sempre false após o primeiro)
+            $nextIndex === ($this->totalChunks - 1),    // isLastPage
+            $this->allChunkPaths[$nextIndex],
+            $this->totalChunks,
+            $this->allChunkPaths,
+            $this->allSellNumbers
+        );
     }
 
     /**

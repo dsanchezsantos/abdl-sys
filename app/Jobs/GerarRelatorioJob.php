@@ -10,7 +10,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Log;
 
 class GerarRelatorioJob implements ShouldQueue
@@ -39,6 +38,11 @@ class GerarRelatorioJob implements ShouldQueue
 
     /**
      * Execute the job.
+     *
+     * Estratégia de despacho sequencial: em vez de usar Bus::chain (que serializa
+     * a cadeia inteira de 800+ jobs dentro do payload de cada job, causando payloads
+     * de vários MB no Redis e travamentos silenciosos), cada GerarChunkRelatorioJob
+     * recebe apenas seus próprios dados e despacha o próximo bloco ao concluir.
      */
     public function handle(RelatorioDataService $dataService): void
     {
@@ -55,38 +59,39 @@ class GerarRelatorioJob implements ShouldQueue
                 return;
             }
 
-            // Chunking Strategy: 100 vendas por PDF parcial (otimizado para evitar estouro de memória no PHP e no Gotenberg)
+            // Chunking Strategy: 100 vendas por PDF parcial
             $chunks = $sellNumbers->chunk(100);
-            $jobs = [];
+            $totalChunks = $chunks->count();
             $chunkPaths = [];
 
+            // Pré-calcular todos os caminhos dos chunks para o Merge final
             foreach ($chunks as $index => $chunk) {
                 $chunkFilename = "relatorio_{$this->relatorio->id}_chunk_{$index}.pdf";
                 $chunkPath = storage_path("app/temp/{$chunkFilename}");
-                
-                // Garantir diretório temp
-                if (!file_exists(dirname($chunkPath))) {
-                    mkdir(dirname($chunkPath), 0775, true);
-                }
-
                 $chunkPaths[] = $chunkPath;
-
-                $jobs[] = new GerarChunkRelatorioJob(
-                    $this->relatorio,
-                    $chunk->toArray(),
-                    $index,
-                    $index === 0, // isFirstPage
-                    $index === ($chunks->count() - 1), // isLastPage
-                    $chunkPath
-                );
             }
 
-            // Encadear: Chunks em paralelo (ou sequência se o worker for único) -> Merge final
-            Bus::chain(array_merge($jobs, [
-                new MergePdfsRelatorioJob($this->relatorio, $chunkPaths)
-            ]))->dispatch();
+            // Garantir diretório temp
+            $tempDir = storage_path('app/temp');
+            if (!file_exists($tempDir)) {
+                mkdir($tempDir, 0775, true);
+            }
 
-            Log::info("Pipeline de relatório #{$this->relatorio->id} iniciado com " . count($jobs) . " chunks.");
+            // Despachar apenas o PRIMEIRO chunk. Ele despachará o próximo ao concluir.
+            $firstChunk = $chunks->first();
+            GerarChunkRelatorioJob::dispatch(
+                $this->relatorio,
+                $firstChunk->toArray(),
+                0,                  // chunkIndex
+                true,               // isFirstPage
+                $totalChunks === 1, // isLastPage (caso raro: apenas 1 chunk)
+                $chunkPaths[0],
+                $totalChunks,
+                $chunkPaths,
+                $sellNumbers->toArray()
+            );
+
+            Log::info("Pipeline de relatório #{$this->relatorio->id} iniciado com {$totalChunks} chunks (despacho sequencial).");
 
         } catch (\Throwable $e) {
             Log::error("Falha ao orquestrar relatório #{$this->relatorio->id}: " . $e->getMessage());
