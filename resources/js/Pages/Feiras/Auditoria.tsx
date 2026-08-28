@@ -45,6 +45,7 @@ export default function Auditoria({ feira, estatisticas, ultimas_vendas, editora
             editora: manualEditora,
             representante: manualRepresentante
         }, {
+            only: ['editoras_representantes', 'representantes_unicos', 'flash'],
             preserveScroll: true,
             onSuccess: () => {
                 setManualEditora('');
@@ -62,6 +63,7 @@ export default function Auditoria({ feira, estatisticas, ultimas_vendas, editora
         router.patch(route('feiras.update', feira.id), {
             nome: nome
         }, {
+            only: ['feira', 'flash'],
             preserveScroll: true,
             onSuccess: () => {
                 setIsSavingNome(false);
@@ -75,6 +77,7 @@ export default function Auditoria({ feira, estatisticas, ultimas_vendas, editora
     const handleDeleteEditoraRep = (id: number) => {
         if (confirm('Tem certeza que deseja remover esta associação?')) {
             router.delete(route('feiras.editoras.destroy', { feira: feira.id, id }), {
+                only: ['editoras_representantes', 'representantes_unicos', 'flash'],
                 preserveScroll: true
             });
         }
@@ -114,6 +117,7 @@ export default function Auditoria({ feira, estatisticas, ultimas_vendas, editora
             formData.append('file', importFile);
 
             router.post(route('feiras.editoras.import', feira.id), formData as any, {
+                only: ['editoras_representantes', 'representantes_unicos', 'flash'],
                 preserveScroll: true,
                 onSuccess: () => {
                     setImportFile(null);
@@ -209,6 +213,7 @@ export default function Auditoria({ feira, estatisticas, ultimas_vendas, editora
 
     const handleSync = () => {
         router.post(route("feiras.sync", feira.id), {}, {
+            only: ['feira', 'flash'],
             onSuccess: () => {
                 setIsSyncing(true);
             }
@@ -250,7 +255,7 @@ export default function Auditoria({ feira, estatisticas, ultimas_vendas, editora
                         </p>
                     </div>
                     <button 
-                        onClick={() => router.post(route('feiras.retry-sync', feira.id), {}, { onSuccess: () => setIsSyncing(true) })}
+                        onClick={() => router.post(route('feiras.retry-sync', feira.id), {}, { only: ['feira', 'flash'], onSuccess: () => setIsSyncing(true) })}
                         className="bg-white/20 hover:bg-white/30 text-white px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all active:scale-95 border border-white/40 flex items-center gap-2"
                     >
                         <span className="material-symbols-outlined text-sm">refresh</span>
