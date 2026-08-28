@@ -46,6 +46,20 @@ class FeiraController extends Controller
     }
 
     /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, Feira $feira)
+    {
+        $validated = $request->validate([
+            'nome' => 'required|string|max:255',
+        ]);
+
+        $feira->update($validated);
+
+        return back()->with('success', 'Nome da feira atualizado com sucesso!');
+    }
+
+    /**
      * Display the specified resource.
      */
     public function show(Feira $feira)

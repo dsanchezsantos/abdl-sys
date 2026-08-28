@@ -20,6 +20,12 @@ interface Props {
 export default function Auditoria({ feira, estatisticas, ultimas_vendas, editoras_representantes, representantes_unicos }: Props) {
     const { props } = usePage();
     const [isSyncing, setIsSyncing] = useState(feira.is_sincronizando);
+    const [nome, setNome] = useState(feira.nome);
+    const [isSavingNome, setIsSavingNome] = useState(false);
+
+    useEffect(() => {
+        setNome(feira.nome);
+    }, [feira.nome]);
     const [selectedVenda, setSelectedVenda] = useState<any | null>(null);
     const [exportOpen, setExportOpen] = useState(false);
 
@@ -47,6 +53,21 @@ export default function Auditoria({ feira, estatisticas, ultimas_vendas, editora
             },
             onError: () => {
                 setIsSavingManual(false);
+            }
+        });
+    };
+
+    const handleSaveNome = () => {
+        setIsSavingNome(true);
+        router.patch(route('feiras.update', feira.id), {
+            nome: nome
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setIsSavingNome(false);
+            },
+            onError: () => {
+                setIsSavingNome(false);
             }
         });
     };
@@ -241,9 +262,26 @@ export default function Auditoria({ feira, estatisticas, ultimas_vendas, editora
             {/* Header Interno da Página */}
             <header className="flex justify-between items-center w-full px-8 py-4 sticky top-0 z-30 bg-[#faf8ff]/80 backdrop-blur-xl font-manrope font-semibold text-[#00246a]">
                 <div className="flex items-center gap-6">
-                    <h1 className="text-on-surface font-extrabold text-xl tracking-tight">
-                        Feira Selecionada: {feira.nome}
-                    </h1>
+                    <div className="flex items-center gap-2 group/nome">
+                        <span className="text-on-surface/60 font-semibold text-sm">Feira Selecionada:</span>
+                        <input
+                            type="text"
+                            value={nome}
+                            onChange={(e) => setNome(e.target.value)}
+                            disabled={isSyncing || isSavingNome}
+                            className="bg-transparent border border-transparent hover:border-slate-300 focus:bg-white focus:border-primary/30 focus:ring-0 rounded-lg px-2 py-1 transition-all outline-none font-extrabold text-xl tracking-tight text-on-surface w-64 md:w-96"
+                        />
+                        {nome !== feira.nome && (
+                            <button
+                                onClick={handleSaveNome}
+                                disabled={isSavingNome}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-all active:scale-95 shadow-sm disabled:opacity-50"
+                            >
+                                <span className="material-symbols-outlined text-sm">save</span>
+                                {isSavingNome ? 'Salvando...' : 'Salvar'}
+                            </button>
+                        )}
+                    </div>
                 </div>
                 <div className="flex items-center gap-4">
                     {/* Botão de Exportação Excel */}

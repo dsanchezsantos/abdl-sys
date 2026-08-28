@@ -18,6 +18,7 @@ Route::middleware(["auth", "verified"])->group(function () {
     Route::get("/dashboard", [FeiraController::class, "index"])->name("dashboard");
     
     Route::post("/feiras", [FeiraController::class, "store"])->name("feiras.store");
+    Route::patch("/feiras/{feira}", [FeiraController::class, "update"])->name("feiras.update");
     Route::get("/feiras/{feira}/auditoria", [FeiraController::class, "show"])->name("feiras.auditoria");
     Route::get("/feiras/{feira}/vendas", [FeiraController::class, "vendas"])->name("feiras.vendas");
     Route::post("/feiras/{feira}/sync", [FeiraController::class, "sync"])->name("feiras.sync");
