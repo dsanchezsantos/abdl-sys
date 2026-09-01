@@ -20,9 +20,7 @@
                 <span class="value">R$ {{ number_format($kpis['media_gasto'], 2, ',', '.') }}</span>
             </div>
             --}}
-        </div>
 
-        <div class="kpi-container" style="margin-bottom: 3mm;">
             <div class="kpi-card">
                 <span class="label">Total de Cartões Utilizados</span>
                 <span class="value">{{ number_format($kpis['total_cartoes'], 0, ',', '.') }}</span>
