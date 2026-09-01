@@ -117,14 +117,16 @@ class CriarVendaManual extends Command
 
         // 5. Executar em transação
         $result = DB::transaction(function () use ($feiraId, $livro, $parcelas, $valorTotal, $saleType) {
-            // Gerar sell_number sequencial numérico (uniforme com a API)
+            // Gerar sell_number sequencial numérico (sem carregar 38k registros na memória)
             $maxSellNumber = DB::table('venda_headers')
                 ->where('id_feira', $feiraId)
-                ->get()
-                ->filter(fn($v) => ctype_digit((string)$v->sell_number))
-                ->max(fn($v) => (int)$v->sell_number);
+                ->whereRaw("sell_number NOT LIKE 'MANUAL%'")
+                ->orderByRaw("LENGTH(sell_number) DESC, sell_number DESC")
+                ->value('sell_number');
 
-            $sellNumber = (string) (($maxSellNumber ?: 100000) + 1);
+            $sellNumber = ($maxSellNumber && is_numeric($maxSellNumber))
+                ? (string) ((int) $maxSellNumber + 1)
+                : (string) rand(100000, 999999);
 
             // Determinar data/hora: horário aleatório entre 08:00–17:00 do último dia de vendas
             $ultimaVenda = VendaHeader::where('id_feira', $feiraId)
