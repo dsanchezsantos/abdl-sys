@@ -10,5 +10,5 @@
     }
 </style>
 <div class="footer-native">
-    Página <span class="pageNumber"></span> de <span class="totalPages"></span> - Relatório de Auditoria Financeira ABDL
+    Página <span class="pageNumber"></span> de <span class="totalPages"></span> - Relatório de Auditoria Financeira
 </div>
