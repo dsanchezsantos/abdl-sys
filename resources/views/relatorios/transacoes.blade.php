@@ -50,11 +50,15 @@
     @foreach($cartoes as $cartao)
         <table style="margin-bottom: 0;">
             <tr class="bg-slate-200">
-                <td class="font-bold" style="width: 20%;">CARTÃO: {{ $cartao->codigo }}</td>
-                <td class="font-bold" style="width: 30%;">ESCOLA: {{ $cartao->grupo }}</td>
+                <td class="font-bold" style="width: 30%;">CARTÃO: {{ $cartao->codigo }}</td>
+                <td class="font-bold" style="width: 50%;">ESCOLA: {{ $cartao->grupo }}</td>
+                {{-- TEMPORARIAMENTE DESATIVADO — Valor Inicial oculto para relatórios específicos
                 <td class="font-bold" style="width: 15%;">INICIAL: R$ {{ number_format($cartao->valor_inicial, 2, ',', '.') }}</td>
-                <td class="font-bold" style="width: 15%;">GASTO: R$ {{ number_format($cartao->valor_gasto, 2, ',', '.') }}</td>
+                --}}
+                <td class="font-bold" style="width: 20%;">GASTO: R$ {{ number_format($cartao->valor_gasto, 2, ',', '.') }}</td>
+                {{-- TEMPORARIAMENTE DESATIVADO — Saldo Final oculto para relatórios específicos
                 <td class="font-bold" style="width: 20%;">SALDO FINAL: R$ {{ number_format($cartao->saldo_restante, 2, ',', '.') }}</td>
+                --}}
             </tr>
         </table>
 
