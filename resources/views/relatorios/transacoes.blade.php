@@ -14,10 +14,12 @@
                 <span class="label">Total Financeiro Movimentado</span>
                 <span class="value">R$ {{ number_format($kpis['total_gasto'], 2, ',', '.') }}</span>
             </div>
+            {{-- TEMPORARIAMENTE DESATIVADO — KPI oculta para apresentação
             <div class="kpi-card">
                 <span class="label">Média de Gasto por Cartão</span>
                 <span class="value">R$ {{ number_format($kpis['media_gasto'], 2, ',', '.') }}</span>
             </div>
+            --}}
         </div>
 
         <div class="kpi-container" style="margin-bottom: 3mm;">
@@ -25,10 +27,12 @@
                 <span class="label">Total de Cartões Utilizados</span>
                 <span class="value">{{ number_format($kpis['total_cartoes'], 0, ',', '.') }}</span>
             </div>
+            {{-- TEMPORARIAMENTE DESATIVADO — KPI oculta para apresentação
             <div class="kpi-card">
                 <span class="label">Cartões que Gastaram Todo o Saldo</span>
                 <span class="value">{{ number_format($kpis['cartoes_zerados'], 0, ',', '.') }}</span>
             </div>
+            --}}
         </div>
 
         @if(isset($chartDiarioFilename))

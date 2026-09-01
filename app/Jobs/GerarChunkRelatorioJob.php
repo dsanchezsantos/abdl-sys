@@ -79,10 +79,11 @@ class GerarChunkRelatorioJob implements ShouldQueue
 
             // 3. Preparar anexos para o Gotenberg (Gráficos + Logo)
             $attachments = $chartFiles;
-            $attachments[] = [
-                'filename' => 'abdl_logo.png',
-                'path'     => public_path('abdl_logo.png')
-            ];
+            // TEMPORARIAMENTE DESATIVADO — Logo removida para apresentação
+            // $attachments[] = [
+            //     'filename' => 'abdl_logo.png',
+            //     'path'     => public_path('abdl_logo.png')
+            // ];
 
             // 4. Conversão HTML -> PDF via Gotenberg
             $pdfContent = $gotenberg->htmlToPdf($html, $attachments, 'Landscape', $headerHtml, $footerHtml);

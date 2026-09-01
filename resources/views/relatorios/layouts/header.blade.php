@@ -19,7 +19,9 @@
 </style>
 <div class="header-native">
     <div style="width: 20%">
+        {{-- TEMPORARIAMENTE DESATIVADO — Logo removida para apresentação
         <img src="data:image/png;base64,{{ base64_encode(file_get_contents(public_path('abdl_logo.png'))) }}" alt="Logo">
+        --}}
     </div>
     <div class="titles">
         <h1>{{ $titulo }}</h1>
