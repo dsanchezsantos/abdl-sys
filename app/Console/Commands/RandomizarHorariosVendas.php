@@ -6,6 +6,7 @@ use App\Models\Feira;
 use App\Models\VendaHeader;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class RandomizarHorariosVendas extends Command
 {
@@ -43,46 +44,50 @@ class RandomizarHorariosVendas extends Command
             return 1;
         }
 
-        // Buscar vendas da feira na data informada
-        $vendas = VendaHeader::where('id_feira', $feiraId)
+        // Contar vendas da feira na data informada
+        $count = VendaHeader::where('id_feira', $feiraId)
             ->whereDate('date_hour', $dataCarbon->format('Y-m-d'))
-            ->get();
+            ->count();
 
-        if ($vendas->isEmpty()) {
+        if ($count === 0) {
             $this->warn("Nenhuma venda encontrada para a feira #{$feiraId} na data {$data}.");
             return 0;
         }
 
-        $this->info("Encontradas {$vendas->count()} vendas na data {$data}.");
+        $this->info("Encontradas {$count} vendas na data {$data}.");
 
         if (!$this->confirm("Deseja aleatorizar os horários destas vendas entre 08:00 e 17:00?")) {
             $this->info("Operação cancelada.");
             return 0;
         }
 
-        $rows = [];
+        $bar = $this->output->createProgressBar($count);
+        $bar->start();
 
-        foreach ($vendas as $venda) {
-            $horarioAntigo = Carbon::parse($venda->date_hour)->format('H:i:s');
+        VendaHeader::where('id_feira', $feiraId)
+            ->whereDate('date_hour', $dataCarbon->format('Y-m-d'))
+            ->select('id')
+            ->chunkById(1000, function ($vendas) use ($dataCarbon, $bar) {
+                DB::transaction(function () use ($vendas, $dataCarbon, $bar) {
+                    foreach ($vendas as $venda) {
+                        $hora = rand(8, 16);
+                        $minuto = rand(0, 59);
+                        $segundo = rand(0, 59);
 
-            // Gerar horário aleatório entre 08:00:00 e 16:59:59
-            $hora = rand(8, 16);
-            $minuto = rand(0, 59);
-            $segundo = rand(0, 59);
+                        $novoDateHour = $dataCarbon->copy()->setTime($hora, $minuto, $segundo);
 
-            $novoDateHour = $dataCarbon->copy()->setTime($hora, $minuto, $segundo);
+                        DB::table('venda_headers')
+                            ->where('id', $venda->id)
+                            ->update(['date_hour' => $novoDateHour]);
 
-            $venda->update(['date_hour' => $novoDateHour]);
+                        $bar->advance();
+                    }
+                });
+            });
 
-            $rows[] = [
-                $venda->sell_number,
-                $horarioAntigo,
-                $novoDateHour->format('H:i:s'),
-            ];
-        }
-
-        $this->table(['Sell Number', 'Horário Antigo', 'Horário Novo'], $rows);
-        $this->info("✅ {$vendas->count()} vendas atualizadas com sucesso.");
+        $bar->finish();
+        $this->newLine(2);
+        $this->info("✅ {$count} vendas atualizadas com sucesso.");
 
         return 0;
     }

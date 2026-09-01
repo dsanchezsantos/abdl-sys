@@ -52,17 +52,17 @@ class RestaurarHorariosVendas extends Command
 
         $novoDateHour = Carbon::parse("{$data} {$horario}");
 
-        // Buscar vendas da feira na data informada
-        $vendas = VendaHeader::where('id_feira', $feiraId)
+        // Contar vendas da feira na data informada
+        $count = VendaHeader::where('id_feira', $feiraId)
             ->whereDate('date_hour', $dataCarbon->format('Y-m-d'))
-            ->get();
+            ->count();
 
-        if ($vendas->isEmpty()) {
+        if ($count === 0) {
             $this->warn("Nenhuma venda encontrada para a feira #{$feiraId} na data {$data}.");
             return 0;
         }
 
-        $this->info("Encontradas {$vendas->count()} vendas na data {$data}.");
+        $this->info("Encontradas {$count} vendas na data {$data}.");
         $this->info("Todas serão restauradas para: {$data} {$horario}");
 
         if (!$this->confirm("Deseja prosseguir?")) {
