@@ -189,13 +189,13 @@ class RedistribuirCaixaLancamento extends Command
      */
     private function obterCaixasAlvo(int $feiraId): array
     {
-        // Se a opção --boxes foi informada
+        // 1. Se a opção --boxes foi informada
         if ($boxesOption = $this->option('boxes')) {
             $boxes = array_map('trim', explode(',', $boxesOption));
             return array_values(array_filter($boxes));
         }
 
-        // Se a opção --count foi informada
+        // 2. Se a opção --count foi informada
         if ($countOption = $this->option('count')) {
             $count = (int) $countOption;
             $boxes = [];
@@ -205,7 +205,7 @@ class RedistribuirCaixaLancamento extends Command
             return $boxes;
         }
 
-        // Caso contrário, buscar do banco de dados na mesma feira
+        // 3. Buscar do banco de dados na mesma feira
         $caixasNormais = VendaHeader::where('id_feira', $feiraId)
             ->whereRaw("UPPER(TRIM(box)) LIKE 'LIVRO %'")
             ->distinct()
@@ -214,6 +214,20 @@ class RedistribuirCaixaLancamento extends Command
 
         usort($caixasNormais, 'strnatcmp');
 
+        // 4. Se não existir nenhum caixa 'LIVRO %' no banco e o terminal for interativo, perguntar ao usuário
+        if (empty($caixasNormais) && $this->input->isInteractive()) {
+            $qtdInput = $this->ask("Nenhum caixa no padrão 'LIVRO ...' foi encontrado no banco de dados. Quantos caixas normais a feira possui?");
+            if (is_numeric($qtdInput) && (int) $qtdInput > 0) {
+                $count = (int) $qtdInput;
+                $boxes = [];
+                for ($i = 1; $i <= $count; $i++) {
+                    $boxes[] = "LIVRO {$i}";
+                }
+                return $boxes;
+            }
+        }
+
         return $caixasNormais;
     }
 }
+
