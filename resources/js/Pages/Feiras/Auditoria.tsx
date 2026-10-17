@@ -2,6 +2,7 @@ import AppLayout from "@/Layouts/AppLayout";
 import { Head, Link, router, usePage } from "@inertiajs/react";
 import { useEffect, useState } from "react";
 import MultiSelect from "@/Components/MultiSelect";
+import EditFairModal from "@/Components/EditFairModal";
 
 interface EditoraRep {
     id: number;
@@ -22,6 +23,7 @@ export default function Auditoria({ feira, estatisticas, ultimas_vendas, editora
     const [isSyncing, setIsSyncing] = useState(feira.is_sincronizando);
     const [nome, setNome] = useState(feira.nome);
     const [isSavingNome, setIsSavingNome] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
 
     useEffect(() => {
         setNome(feira.nome);
@@ -286,6 +288,15 @@ export default function Auditoria({ feira, estatisticas, ultimas_vendas, editora
                                 {isSavingNome ? 'Salvando...' : 'Salvar'}
                             </button>
                         )}
+                        <button
+                            type="button"
+                            onClick={() => setShowEditModal(true)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-primary/20 text-primary hover:bg-primary/5 rounded-lg text-xs font-bold transition-all active:scale-95 shadow-sm"
+                            title="Visualizar e editar todos os dados cadastrais da feira"
+                        >
+                            <span className="material-symbols-outlined text-sm">tune</span>
+                            <span>Editar Dados</span>
+                        </button>
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -957,6 +968,12 @@ export default function Auditoria({ feira, estatisticas, ultimas_vendas, editora
                     </div>
                 </div>
             )}
+
+            <EditFairModal
+                show={showEditModal}
+                feira={feira}
+                onClose={() => setShowEditModal(false)}
+            />
         </AppLayout>
     );
 }

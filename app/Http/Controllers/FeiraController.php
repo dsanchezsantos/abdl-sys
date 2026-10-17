@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Feira;
 use App\Models\EditoraRepresentante;
 use App\Http\Requests\StoreFeiraRequest;
+use App\Http\Requests\UpdateFeiraRequest;
 use App\Enums\FeiraStatus;
 use App\Jobs\SincronizarFeiraMaestroJob;
 use App\Jobs\ProcessarPaginaVendaJob;
@@ -48,15 +49,17 @@ class FeiraController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Feira $feira)
+    public function update(UpdateFeiraRequest $request, Feira $feira)
     {
-        $validated = $request->validate([
-            'nome' => 'required|string|max:255',
-        ]);
+        if ($feira->is_sincronizando) {
+            return back()->withErrors([
+                'feira' => 'Esta feira está em processo de sincronização e não pode ser editada no momento.',
+            ]);
+        }
 
-        $feira->update($validated);
+        $feira->update($request->validated());
 
-        return back()->with('success', 'Nome da feira atualizado com sucesso!');
+        return back()->with('success', 'Dados da feira atualizados com sucesso!');
     }
 
     /**
@@ -65,7 +68,19 @@ class FeiraController extends Controller
     public function show(Feira $feira)
     {
         return Inertia::render("Feiras/Auditoria", [
-            "feira" => $feira->only('id', 'nome', 'is_sincronizando', 'data_inicio', 'data_fim', 'status', 'status_integridade'),
+            "feira" => $feira->only(
+                'id',
+                'nome',
+                'is_sincronizando',
+                'data_inicio',
+                'data_fim',
+                'status',
+                'status_integridade',
+                'endpoint_url',
+                'evento_id_api',
+                'user_id_api',
+                'ultima_sincronizacao_em'
+            ),
             "estatisticas" => Inertia::lazy(fn () => $feira->estatistica),
             "ultimas_vendas" => Inertia::lazy(fn () => $feira->vendas()->with([
                 'itensVenda' => fn($q) => $q->where('id_feira', $feira->id),
