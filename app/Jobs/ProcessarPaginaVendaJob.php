@@ -9,6 +9,7 @@ use App\Models\ItemVenda;
 use App\Models\Pagamento;
 use App\Models\Livro;
 use App\Services\NowigoService;
+use App\Exceptions\NowigoApiException;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -75,9 +76,19 @@ class ProcessarPaginaVendaJob implements ShouldQueue
 
             Log::debug("Página {$this->page} finalizada para a Feira #{$this->feiraId}");
         } catch (\Throwable $e) {
+            // Se for erro temporário de API (Rate limit 429/403, indisponibilidade 5xx ou timeout de rede)
+            $isTemporary = ($e instanceof NowigoApiException && ($e->isRateLimited() || ($e->getHttpStatus() >= 500 && $e->getHttpStatus() <= 504)))
+                || $e instanceof \Illuminate\Http\Client\ConnectionException;
+
+            if ($isTemporary && $this->attempts() < 5) {
+                Log::warning("Página {$this->page} (Feira #{$this->feiraId}) enfrentou instabilidade temporária na Nowigo: {$e->getMessage()}. Reagendando job para daqui a 60s (Tentativa {$this->attempts()} de 5)...");
+                $this->release(60);
+                return;
+            }
+
             Log::error("FALHA CRÍTICA na Página {$this->page} (Feira #{$this->feiraId}): " . $e->getMessage());
 
-            // Auditoria de Erro
+            // Auditoria de Erro definitivo
             DB::table('erros_integracao')->insert([
                 'id_feira' => $this->feiraId,
                 'pagina' => $this->page,

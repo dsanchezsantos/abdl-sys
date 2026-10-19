@@ -57,7 +57,13 @@ class FeiraController extends Controller
             ]);
         }
 
-        $feira->update($request->validated());
+        $validated = $request->validated();
+
+        if (array_key_exists('api_password', $validated) && (is_null($validated['api_password']) || $validated['api_password'] === '')) {
+            unset($validated['api_password']);
+        }
+
+        $feira->update($validated);
 
         return back()->with('success', 'Dados da feira atualizados com sucesso!');
     }
@@ -77,6 +83,7 @@ class FeiraController extends Controller
                 'status',
                 'status_integridade',
                 'endpoint_url',
+                'api_username',
                 'evento_id_api',
                 'user_id_api',
                 'ultima_sincronizacao_em'

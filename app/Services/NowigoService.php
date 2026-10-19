@@ -7,18 +7,19 @@ use App\Exceptions\NowigoApiException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class NowigoService
 {
     protected Feira $feira;
     protected string $baseUrl;
+    protected string $endpointUrl;
 
     public function __construct(Feira $feira)
     {
         $this->feira = $feira;
-        $this->baseUrl = $feira->endpoint_url ?? config('services.nowigo.base_url');
+        $this->baseUrl = $feira->base_url;
+        $this->endpointUrl = $feira->endpoint_url ?? config('services.nowigo.base_url');
     }
 
     /**
@@ -55,7 +56,7 @@ class NowigoService
     }
 
     /**
-     * Pausa entre chamadas consecutivas para evitar rate limiting da API.
+     * Pausa entre chamadas consecutivas para evitar sobrecarga da API.
      * Abordagem conservadora: 500ms (2 req/s max).
      */
     public function throttle(): void
@@ -64,76 +65,191 @@ class NowigoService
     }
 
     /**
-     * Executa a requisição HTTP com retry inteligente e tratamento de 403 (rate limit).
-     *
-     * Estratégia de backoff:
-     * - Erros 403/429 (rate limit): espera 30s × tentativa (30s, 60s, 90s)
-     * - Erros 5xx (servidor):        espera 5s × tentativa (5s, 10s, 15s)
-     * - Erros 4xx (cliente):         não retenta (ex: 400, 404)
+     * Obtém o cookie de sessão JSESSIONID.
+     * Utiliza cache com bloqueio atômico para evitar múltiplos logins simultâneos (Cache Stampede).
      */
-    /**
-     * Executa a requisição HTTP com retry inteligente e tratamento de 403 (rate limit).
-     */
-    protected function request(array $params): array
+    public function obterJSessionId(bool $forceRefresh = false): string
     {
-        $primaryUrl = $this->baseUrl;
-        $proxyUrl = config('services.nowigo.proxy_url');
+        $cacheKey = "nowigo_session_feira_{$this->feira->id}";
 
-        try {
-            // 1. Tenta a chamada direta oficial
-            return $this->executeRequest($primaryUrl, $params);
-        } catch (\Exception $e) {
-            // Se falhou e foi por bloqueio de IP (403 ou 429) E temos um proxy configurado
-            $isRateLimited = ($e instanceof NowigoApiException && $e->isRateLimited()) 
-                || ($e instanceof \Illuminate\Http\Client\RequestException && in_array($e->response?->status(), [403, 429]));
+        if ($forceRefresh) {
+            Cache::forget($cacheKey);
+        } else {
+            $cachedSession = Cache::get($cacheKey);
+            if (!empty($cachedSession)) {
+                return (string) $cachedSession;
+            }
+        }
 
-            if ($isRateLimited && !empty($proxyUrl)) {
-                $status = $e instanceof NowigoApiException ? $e->getHttpStatus() : $e->response?->status();
-                Log::warning("IP bloqueado ou rate limit na URL direta (Status: {$status}). Redirecionando requisição via Cloudflare Proxy...");
-                try {
-                    // 2. Fallback automático silencioso para o Cloudflare Worker
-                    return $this->executeRequest($proxyUrl, $params);
-                } catch (\Exception $proxyException) {
-                    Log::error("FALHA no Proxy da Cloudflare: " . $proxyException->getMessage());
-                    $this->notifyFailure("Direta e Proxy falharam. Erro proxy: " . $proxyException->getMessage());
-                    throw $proxyException;
-                }
+        // Lock atômico: apenas 1 worker faz o login por vez; os outros aguardam até 10 segundos
+        $lockKey = "nowigo_lock_login_feira_{$this->feira->id}";
+        return Cache::lock($lockKey, 15)->block(10, function () use ($cacheKey) {
+            // Dupla checagem: o worker que acabou de adquirir o lock verifica se outro worker já renovou a sessão
+            $cachedSession = Cache::get($cacheKey);
+            if (!empty($cachedSession)) {
+                return (string) $cachedSession;
             }
 
-            Log::error("ERRO na Requisição Nowigo: " . $e->getMessage());
-            $this->notifyFailure($e->getMessage());
-            throw $e;
-        }
+            $sessionId = $this->autenticar();
+
+            // Guarda em cache por 25 minutos (renovação proativa)
+            Cache::put($cacheKey, $sessionId, now()->addMinutes(25));
+
+            return $sessionId;
+        });
     }
 
     /**
-     * Realiza a chamada HTTP de fato para a URL fornecida com a lógica de retentativas.
+     * Realiza o login direto no endpoint /app/signin.mdl e extrai o JSESSIONID.
      */
-    protected function executeRequest(string $url, array $params): array
+    public function autenticar(): string
+    {
+        $username = $this->feira->api_username ?? config('services.nowigo.username');
+        $password = $this->feira->api_password ?? config('services.nowigo.password');
+
+        if (empty($username) || empty($password)) {
+            throw new NowigoApiException(
+                "Credenciais de acesso à API Nowigo (usuário e senha) não estão configuradas para a Feira #{$this->feira->id} ({$this->feira->nome}).",
+                401
+            );
+        }
+
+        $loginUrl = rtrim($this->baseUrl, '/') . '/app/signin.mdl';
+
+        Log::info("Iniciando autenticação na API Nowigo para a Feira #{$this->feira->id} em {$loginUrl}");
+
+        try {
+            $response = Http::withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept' => '*/*',
+            ])
+            ->timeout(20)
+            ->asForm()
+            ->post($loginUrl, [
+                'action' => 'signin',
+                'username' => $username,
+                'password' => $password,
+            ]);
+        } catch (\Throwable $e) {
+            throw new NowigoApiException(
+                "Falha na conexão ao autenticar na API Nowigo ({$loginUrl}): " . $e->getMessage(),
+                500,
+                $e
+            );
+        }
+
+        if ($response->status() === 429 || $response->status() === 403) {
+            $this->ativarCooldownGlobal(60);
+            throw new NowigoApiException(
+                "Endpoint de autenticação da Nowigo retornou bloqueio/rate limit (Status {$response->status()}).",
+                $response->status()
+            );
+        }
+
+        // 1. Tenta extrair o JSESSIONID dos cookies gerenciados pelo cliente HTTP
+        $sessionId = null;
+        $cookie = $response->cookies()->getCookieByName('JSESSIONID');
+        if ($cookie) {
+            $sessionId = $cookie->getValue();
+        }
+
+        // 2. Fallback: extrair diretamente do header Set-Cookie se não veio no CookieJar
+        if (!$sessionId) {
+            $setCookieHeader = $response->header('Set-Cookie') ?? '';
+            if (preg_match('/JSESSIONID=([^;]+)/', $setCookieHeader, $matches)) {
+                $sessionId = trim($matches[1]);
+            }
+        }
+
+        if (empty($sessionId)) {
+            Log::error("Login na Nowigo falhou. Resposta: " . Str::limit($response->body(), 300));
+            throw new NowigoApiException(
+                "A API Nowigo não retornou o cookie de sessão JSESSIONID. Verifique as credenciais ou a URL informada.",
+                401
+            );
+        }
+
+        Log::info("Autenticação na Nowigo realizada com sucesso para a Feira #{$this->feira->id}.");
+
+        return $sessionId;
+    }
+
+    /**
+     * Executa a requisição com verificação de Cooldown, Auto-Healing de Sessão e Retry.
+     */
+    protected function request(array $params, int $authRetries = 0): array
+    {
+        $this->verificarCooldownGlobal();
+
+        $sessionId = $this->obterJSessionId();
+
+        try {
+            $data = $this->executeRequest($this->endpointUrl, $params, $sessionId);
+        } catch (NowigoApiException $e) {
+            // Se foi Rate Limit (429 ou 403), registra o cooldown global imediatamente
+            if ($e->isRateLimited()) {
+                $this->ativarCooldownGlobal(60);
+            }
+            throw $e;
+        }
+
+        // Verificação Reativa: se a API retornou indício de sessão inválida no payload JSON
+        if ($this->isSessaoNaoAutenticada($data)) {
+            if ($authRetries < 2) {
+                $mensagem = $data['message'] ?? 'Sessão não autenticada.';
+                Log::warning("Sessão da Nowigo inválida/expirada detectada no payload ({$mensagem}). Reautenticando e repetindo requisição (Tentativa " . ($authRetries + 1) . " de 2)...");
+                
+                // Força obtenção de novo cookie e reexecuta
+                $this->obterJSessionId(forceRefresh: true);
+                return $this->request($params, $authRetries + 1);
+            }
+
+            throw new NowigoApiException(
+                "Não foi possível autenticar na API Nowigo após renovar sessão. Retorno: " . ($data['message'] ?? json_encode($data)),
+                401
+            );
+        }
+
+        // Validação da estrutura esperada de retorno
+        if (!isset($data['data'])) {
+            throw new NowigoApiException(
+                "API Nowigo retornou formato inesperado (chave 'data' ausente): " . json_encode($data)
+            );
+        }
+
+        return $data;
+    }
+
+    /**
+     * Realiza a chamada HTTP com os headers de sessão e retentativas exponenciais com Jitter.
+     */
+    protected function executeRequest(string $url, array $params, string $sessionId): array
     {
         $response = Http::withHeaders([
             'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept' => 'application/json, text/javascript, */*; q=0.01',
             'Accept-Language' => 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Cookie' => "JSESSIONID={$sessionId}",
         ])->retry(
             times: 3,
             sleepMilliseconds: function (int $attempt, ?\Exception $exception) {
-                // Se for rate limit (403/429), backoff agressivo
+                // Jitter aleatório entre 200ms e 800ms para evitar colisões
+                $jitter = rand(200, 800);
+
                 if ($exception instanceof \Illuminate\Http\Client\RequestException
                     && in_array($exception->response?->status(), [403, 429])
                 ) {
-                    $delay = $attempt * 30000; // 30s, 60s, 90s
-                    Log::warning("Rate limit detectado. Aguardando {$delay}ms antes da tentativa {$attempt}...");
+                    $delay = ($attempt * 20000) + $jitter; // 20s, 40s, 60s
+                    Log::warning("Rate limit detectado na API Nowigo. Aguardando {$delay}ms antes da tentativa {$attempt}...");
                     return $delay;
                 }
 
-                // Demais erros: backoff padrão
-                return $attempt * 5000; // 5s, 10s, 15s
+                // Erros de servidor (5xx) ou rede: 5s, 10s, 15s + jitter
+                return ($attempt * 5000) + $jitter;
             },
             when: function (\Exception $exception) {
-                // Erros de conexão/timeout: sempre retenta
                 if (! $exception instanceof \Illuminate\Http\Client\RequestException) {
-                    return true;
+                    return true; // Erros de timeout e conexão: sempre retenta
                 }
 
                 $status = $exception->response?->status();
@@ -143,26 +259,41 @@ class NowigoService
                     return true;
                 }
 
-                // Demais erros de cliente (400, 404, etc): não retenta
+                // Erros de cliente permanentes (400, 404, etc.): não retenta
                 return false;
             },
-            throw: true
+            throw: false
         )
-            ->timeout(30)
-            ->get($url, $params);
+        ->timeout(30)
+        ->get($url, $params);
+
+        if ($response->status() === 429 || $response->status() === 403) {
+            throw new NowigoApiException(
+                "API Nowigo retornou Rate Limit / Bloqueio temporário (Status {$response->status()}).",
+                $response->status()
+            );
+        }
 
         if ($response->failed()) {
             throw new NowigoApiException(
-                "API Nowigo retornou erro {$response->status()}: {$response->body()}",
+                "API Nowigo retornou erro {$response->status()}: " . Str::limit($response->body(), 300),
                 $response->status()
             );
         }
 
         $data = $response->json();
 
-        if (!isset($data['data'])) {
+        if (!is_array($data)) {
+            // Se não for JSON (ex: página HTML de erro ou tela de login), tratamos como sessão inválida se contiver signin
+            if (Str::contains($response->body(), ['signin', 'login', 'Sessão'])) {
+                return [
+                    'success' => false,
+                    'message' => 'Sessão não autenticada (HTML retornado).',
+                ];
+            }
+
             throw new NowigoApiException(
-                "API Nowigo retornou formato inesperado: " . json_encode($data)
+                "API Nowigo retornou resposta que não é JSON: " . Str::limit($response->body(), 300)
             );
         }
 
@@ -170,20 +301,42 @@ class NowigoService
     }
 
     /**
-     * Envia notificação de falha com throttling (cache lock).
+     * Identifica se a resposta sinaliza sessão ausente, expirada ou inválida.
      */
-    protected function notifyFailure(string $message): void
+    protected function isSessaoNaoAutenticada(array $data): bool
     {
-        $cacheKey = "nowigo_alert_sent_{$this->feira->id}";
-
-        if (!Cache::has($cacheKey)) {
-            Log::error("Falha na API Nowigo para a Feira #{$this->feira->id}: {$message}");
-
-            // TODO: Implementar envio de e-mail real aqui se necessário
-            // Mail::to(config('mail.admin_address'))->send(new \App\Mail\ApiFailureAlert($this->feira, $message));
-
-            Cache::put($cacheKey, true, now()->addMinutes(30));
+        if (isset($data['success']) && $data['success'] === false) {
+            $message = Str::lower((string) ($data['message'] ?? ''));
+            if (Str::contains($message, ['sessão', 'sessao', 'autenticad', 'login', 'unauthorized', 'acesso'])) {
+                return true;
+            }
         }
+
+        return false;
+    }
+
+    /**
+     * Verifica se existe um Cooldown Global ativo no Cache para esta Feira.
+     */
+    protected function verificarCooldownGlobal(): void
+    {
+        $cooldownKey = "nowigo_cooldown_feira_{$this->feira->id}";
+        if (Cache::has($cooldownKey)) {
+            throw new NowigoApiException(
+                "API Nowigo em período de cooldown defensivo devido a rate limit recente. Aguardando liberação da fila.",
+                429
+            );
+        }
+    }
+
+    /**
+     * Ativa Cooldown Global para que todos os workers parem de bater na Nowigo temporariamente.
+     */
+    public function ativarCooldownGlobal(int $segundos = 60): void
+    {
+        $cooldownKey = "nowigo_cooldown_feira_{$this->feira->id}";
+        Cache::put($cooldownKey, true, now()->addSeconds($segundos));
+        Log::warning("Cooldown global de {$segundos}s ativado para a Feira #{$this->feira->id} (API Nowigo).");
     }
 
     /**

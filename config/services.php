@@ -37,7 +37,8 @@ return [
 
     'nowigo' => [
         'base_url'    => env('NOWIGO_API_URL', 'https://feiradolivro-saquarema2025.nowigo.com.br/app/sale.mdl'),
-        'proxy_url'   => env('NOWIGO_PROXY_URL'), // Opcional: URL do Cloudflare Worker para failover
+        'username'    => env('NOWIGO_USERNAME'),
+        'password'    => env('NOWIGO_PASSWORD'),
         'limit_pages' => env('NOWIGO_SYNC_LIMIT'), // Para testes
     ],
 

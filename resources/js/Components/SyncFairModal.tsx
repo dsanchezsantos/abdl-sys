@@ -12,6 +12,8 @@ export default function SyncFairModal({ show, onClose }: SyncFairModalProps) {
         data_inicio: "",
         data_fim: "",
         endpoint_url: "",
+        api_username: "",
+        api_password: "",
         evento_id_api: "",
         user_id_api: "",
     });
@@ -92,6 +94,46 @@ export default function SyncFairModal({ show, onClose }: SyncFairModalProps) {
                             />
                         </div>
                         {errors.endpoint_url && <p className="text-xs font-bold text-red-500">{errors.endpoint_url}</p>}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-xs font-extrabold uppercase tracking-wider text-primary/60">
+                                Usuário API Nowigo
+                            </label>
+                            <div className="relative">
+                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-lg text-primary/45">
+                                    account_circle
+                                </span>
+                                <input
+                                    className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm font-medium text-primary transition-all placeholder:text-primary/35 focus:border-secondary focus:bg-white focus:ring-0"
+                                    placeholder="Ex: feiramaster"
+                                    type="text"
+                                    value={data.api_username}
+                                    onChange={(e) => setData("api_username", e.target.value)}
+                                />
+                            </div>
+                            {errors.api_username && <p className="text-xs font-bold text-red-500">{errors.api_username}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-xs font-extrabold uppercase tracking-wider text-primary/60">
+                                Senha API Nowigo
+                            </label>
+                            <div className="relative">
+                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-lg text-primary/45">
+                                    lock
+                                </span>
+                                <input
+                                    className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm font-medium text-primary transition-all placeholder:text-primary/35 focus:border-secondary focus:bg-white focus:ring-0"
+                                    placeholder="••••••••"
+                                    type="password"
+                                    value={data.api_password}
+                                    onChange={(e) => setData("api_password", e.target.value)}
+                                />
+                            </div>
+                            {errors.api_password && <p className="text-xs font-bold text-red-500">{errors.api_password}</p>}
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">

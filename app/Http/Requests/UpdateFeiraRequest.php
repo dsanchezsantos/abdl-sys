@@ -43,6 +43,8 @@ class UpdateFeiraRequest extends FormRequest
             'data_inicio' => 'sometimes|required|date',
             'data_fim' => 'sometimes|required|date|after_or_equal:data_inicio',
             'endpoint_url' => 'sometimes|required|url|max:500',
+            'api_username' => 'nullable|string|max:255',
+            'api_password' => 'nullable|string|max:255',
             'evento_id_api' => 'sometimes|required|string|max:255',
             'user_id_api' => 'sometimes|required|string|max:255',
             'status' => ['sometimes', 'required', new Enum(FeiraStatus::class)],

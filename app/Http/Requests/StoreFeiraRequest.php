@@ -26,6 +26,8 @@ class StoreFeiraRequest extends FormRequest
             "data_inicio" => "required|date",
             "data_fim" => "required|date|after_or_equal:data_inicio",
             "endpoint_url" => "required|url|max:500",
+            "api_username" => "nullable|string|max:255",
+            "api_password" => "nullable|string|max:255",
             "evento_id_api" => "required|string",
             "user_id_api" => "required|string",
         ];
