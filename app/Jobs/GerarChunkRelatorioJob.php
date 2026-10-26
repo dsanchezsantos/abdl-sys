@@ -199,6 +199,7 @@ class GerarChunkRelatorioJob implements ShouldQueue
                     
                     $data['chartVendasDiariasFilename'] = $chart1['filename'];
                     $data['chartRepresentantesFilename'] = $chart2['filename'];
+                    $data['vendasDiarias'] = $vendasDiarias;
                 }
                 
                 $pagamentos = $dataService->getPagamentosPorVendasChunk($this->relatorio->id_feira, $this->sellNumbers)

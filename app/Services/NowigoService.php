@@ -161,10 +161,15 @@ class NowigoService
             }
         }
 
-        if (empty($sessionId)) {
-            Log::error("Login na Nowigo falhou. Resposta: " . Str::limit($response->body(), 300));
+        // 3. Validação crucial: a Nowigo sempre retorna um JSESSIONID mesmo com senha errada,
+        // mas quando o login falha ela recarrega a tela de login contendo o formulário de signin.
+        $body = $response->body();
+        $isLoginForm = Str::contains($body, ['.signin-form', 'name="password"']) && Str::contains($body, ['signin.mdl', 'action="signin"']);
+
+        if (empty($sessionId) || $isLoginForm) {
+            Log::error("Login na Nowigo rejeitado para a Feira #{$this->feira->id}. Credenciais inválidas ou conta bloqueada.");
             throw new NowigoApiException(
-                "A API Nowigo não retornou o cookie de sessão JSESSIONID. Verifique as credenciais ou a URL informada.",
+                "Falha na autenticação da Nowigo: Usuário ou senha incorretos para a Feira #{$this->feira->id} ({$this->feira->nome}). Por favor, verifique as credenciais configuradas na feira.",
                 401
             );
         }

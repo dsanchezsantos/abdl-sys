@@ -29,6 +29,39 @@
                 <div style="width: 48%;" class="chart-container">
                     <h3 style="font-size: 9pt; font-weight: bold; margin-bottom: 2pt;">Volume Financeiro (Vendas/Dia)</h3>
                     <img src="{{ $chartVendasDiariasFilename }}" alt="Volume de Vendas por Dia">
+
+                    @if(!empty($vendasDiarias['labels']))
+                        @php
+                            $diasFaturamento = collect($vendasDiarias['labels'])
+                                ->map(fn($dia, $i) => ['dia' => $dia, 'valor' => (float) ($vendasDiarias['values'][$i] ?? 0)])
+                                ->chunk(5);
+                        @endphp
+                        <table style="margin-top: 2mm; margin-bottom: 0; table-layout: fixed;">
+                            @foreach($diasFaturamento as $bloco)
+                                <tr>
+                                    @foreach($bloco as $item)
+                                        <th class="text-center" style="font-size: 7pt; padding: 2pt;">{{ $item['dia'] }}</th>
+                                    @endforeach
+                                    @for($j = $bloco->count(); $j < 5; $j++)
+                                        <th style="padding: 2pt; background: none; border: none;"></th>
+                                    @endfor
+                                </tr>
+                                <tr>
+                                    @foreach($bloco as $item)
+                                        <td class="text-center" style="font-size: 7pt; padding: 2pt; white-space: nowrap;">R$ {{ number_format($item['valor'], 2, ',', '.') }}</td>
+                                    @endforeach
+                                    @for($j = $bloco->count(); $j < 5; $j++)
+                                        <td style="padding: 2pt; border: none;"></td>
+                                    @endfor
+                                </tr>
+                            @endforeach
+                            <tr class="bg-slate-200">
+                                <td colspan="5" class="text-center font-bold" style="font-size: 7.5pt; padding: 3pt;">
+                                    TOTAL DO PERÍODO: R$ {{ number_format(array_sum($vendasDiarias['values']), 2, ',', '.') }}
+                                </td>
+                            </tr>
+                        </table>
+                    @endif
                 </div>
             @endif
             @if(isset($chartRepresentantesFilename))
